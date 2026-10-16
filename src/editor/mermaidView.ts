@@ -137,11 +137,31 @@ class LabeledCodeBlockView implements NodeView {
   contentDOM: HTMLElement;
   private label: HTMLElement;
 
-  constructor(node: PMNode) {
+  constructor(node: PMNode, view: EditorView, getPos: () => number | undefined) {
     this.dom = document.createElement("pre");
     this.dom.className = "code-block";
     this.label = document.createElement("span");
     this.label.className = "code-lang-label";
+    // 点击标签改语言：面板选中后 setNodeMarkup 更新 language 属性
+    this.label.onmousedown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    this.label.onclick = () => {
+      void import("./langHint").then(({ openLangPicker }) => {
+        openLangPicker(
+          this.label.getBoundingClientRect(),
+          String(node.attrs.language ?? ""),
+          (lang) => {
+            const pos = getPos();
+            if (pos === undefined) return;
+            view.dispatch(
+              view.state.tr.setNodeMarkup(pos, undefined, { language: lang }),
+            );
+          },
+        );
+      });
+    };
     this.contentDOM = document.createElement("code");
     this.dom.append(this.contentDOM, this.label);
     this.update(node);
@@ -171,7 +191,7 @@ export const mermaidView = $view(codeBlockSchema.node, () => {
     getPos: () => number | undefined,
   ): NodeView {
     if (node.attrs.language !== "mermaid") {
-      return new LabeledCodeBlockView(node);
+      return new LabeledCodeBlockView(node, view, getPos);
     }
     return new MermaidNodeView(node, view, getPos);
   };

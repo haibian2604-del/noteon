@@ -182,3 +182,95 @@ function pickLang(view: EditorView, lang: string): void {
   );
   view.dispatch(tr.scrollIntoView());
 }
+
+/* ── 点击代码块右下角语言标签弹出语言选择面板 ── */
+
+let picker: {
+  root: HTMLDivElement;
+  input: HTMLInputElement;
+  list: HTMLDivElement;
+  items: string[];
+  selected: number;
+  onPick: (lang: string) => void;
+  close: () => void;
+} | null = null;
+
+/** 在 anchor（标签位置）附近打开语言选择面板；onPick 收到选中的语言名 */
+export function openLangPicker(
+  anchor: DOMRect,
+  current: string,
+  onPick: (lang: string) => void,
+): void {
+  picker?.close();
+  const root = document.createElement("div");
+  root.className = "lang-hint lang-picker";
+  const input = document.createElement("input");
+  input.className = "lang-picker-input";
+  input.value = current;
+  const list = document.createElement("div");
+  list.className = "lang-picker-list";
+  root.append(input, list);
+  document.body.appendChild(root);
+
+  const close = () => {
+    if (!picker) return;
+    document.removeEventListener("mousedown", onOutside, true);
+    root.remove();
+    picker = null;
+  };
+  const pick = (lang: string) => {
+    close();
+    if (lang) onPick(lang);
+  };
+  const render = () => {
+    if (!picker) return;
+    const q = input.value.trim().toLowerCase();
+    picker.items = q
+      ? filterLangs(input.value.trim())
+      : allLangs.slice(0, MAX_ITEMS).map((l) => l.name);
+    picker.selected = 0;
+    list.innerHTML = "";
+    picker.items.forEach((name, i) => {
+      const row = document.createElement("div");
+      row.className = `lang-hint-item${i === picker!.selected ? " sel" : ""}`;
+      row.textContent = name;
+      row.onmousedown = (e) => {
+        e.preventDefault();
+        pick(name);
+      };
+      list.appendChild(row);
+    });
+    if (picker.items.length === 0) {
+      list.textContent = "无匹配语言";
+    }
+  };
+  const onOutside = (e: MouseEvent) => {
+    if (!root.contains(e.target as Node)) close();
+  };
+  input.oninput = render;
+  input.onkeydown = (e) => {
+    if (!picker) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const delta = e.key === "ArrowDown" ? 1 : -1;
+      picker.selected =
+        (picker.selected + delta + picker.items.length) % picker.items.length;
+      Array.from(list.children).forEach((el, i) =>
+        el.classList.toggle("sel", i === picker!.selected),
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      pick(picker.items[picker.selected] ?? input.value.trim());
+    } else if (e.key === "Escape") {
+      close();
+    }
+  };
+  document.addEventListener("mousedown", onOutside, true);
+
+  picker = { root, input, list, items: [], selected: 0, onPick, close };
+  render();
+  root.style.left = `${anchor.right - 180}px`;
+  root.style.top = `${anchor.top - root.offsetHeight - 6}px`;
+  input.focus();
+  input.select();
+}
