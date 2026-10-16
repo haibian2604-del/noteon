@@ -16,6 +16,7 @@ import { setMermaidTheme } from "./editor/mermaidView";
 import Sidebar, { type OutlineItem, type SidebarTab } from "./ui/Sidebar";
 import FormatToolbar from "./ui/FormatToolbar";
 import EditorContextMenu from "./ui/EditorContextMenu";
+import FindReplace from "./ui/FindReplace";
 import QuickOpen from "./ui/QuickOpen";
 import SettingsModal, {
   FONT_FAMILY_CSS,
@@ -75,6 +76,7 @@ function App() {
   const [sourceMode, setSourceMode] = useState(false);
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickFiles, setQuickFiles] = useState<string[]>([]);
@@ -467,6 +469,9 @@ function App() {
       } else if (e.key === ",") {
         e.preventDefault();
         setSettingsOpen(true);
+      } else if (e.key === "f") {
+        e.preventDefault();
+        if (!sourceModeRef.current) setFindOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -685,6 +690,17 @@ function App() {
             <EditorContextMenu
               onCommand={runEditorCommand}
               enabled={!settingsOpen && !quickOpen}
+            />
+          )}
+          {!sourceMode && (
+            <FindReplace
+              open={findOpen}
+              onClose={() => setFindOpen(false)}
+              getView={() =>
+                editorRef.current
+                  ? editorRef.current.action((ctx) => ctx.get(editorViewCtx))
+                  : null
+              }
             />
           )}
         </main>

@@ -12,6 +12,7 @@ import { saveImage } from "../bridge/ipc";
 import { mermaidView } from "./mermaidView";
 import { createLangHintPlugin } from "./langHint";
 import { alertPlugin } from "./alerts";
+import { findPlugin } from "./findReplace";
 import { applyRawBracketText } from "./serialize";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github.css";
@@ -149,6 +150,7 @@ export default function MilkdownEditor({
         .use(mermaidView)
         .use(highlightPlugin)
         .use(alertPlugin)
+        .use($prose(() => findPlugin))
         .use($prose(() => createLangHintPlugin()));
 
       if (disposed) {
