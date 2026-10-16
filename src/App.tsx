@@ -30,6 +30,7 @@ import {
 } from "@milkdown/kit/preset/gfm";
 import MilkdownEditor from "./editor/MilkdownEditor";
 import SourceEditor, { type SourceEditorHandle } from "./editor/SourceEditor";
+import { decodeFrontmatter, encodeFrontmatter } from "./editor/frontmatter";
 import { setMermaidTheme } from "./editor/mermaidView";
 import Sidebar, { type OutlineItem, type SidebarTab } from "./ui/Sidebar";
 import QuickOpen from "./ui/QuickOpen";
@@ -99,6 +100,7 @@ function App() {
   const markdownRef = useRef(""); // 编辑器最新序列化结果
   const savedRef = useRef<string | null>(""); // 与磁盘一致的版本（null = 等待编辑器建立基线）
   const diskRawRef = useRef(""); // 已知的磁盘原文（打开/保存时更新），外部变更去重用
+  const frontmatterRef = useRef(false); // 当前文档带 YAML frontmatter（读入时已转成代码块）
   const watchTimer = useRef<number | undefined>(undefined);
   const pendingJumpRef = useRef<string | null>(null); // 搜索命中跳转：待编辑器就绪后滚动
   const editorRef = useRef<Editor | null>(null);
@@ -137,12 +139,22 @@ function App() {
   // 源码模式 ↔ 所见即所得：content 状态是两侧共用的文档真相
   const toggleSourceMode = useCallback(() => {
     if (sourceModeRef.current) {
-      // 退出：用当前 markdown 重建 Milkdown（baseline 未变，脏状态保留）
-      setContent(markdownRef.current);
+      // 退出：转回代码块形态重建 Milkdown（baseline 未变，脏状态保留）
+      const enc = encodeFrontmatter(markdownRef.current);
+      frontmatterRef.current = enc.had;
+      markdownRef.current = enc.text;
+      setContent(enc.text);
       setEditorKey((k) => k + 1);
       setSourceMode(false);
     } else {
       editorRef.current = null; // Milkdown 卸载，段落/格式命令不再可用
+      // 源码视图显示 --- 原文形态；退出时按内容重探 frontmatter
+      const raw = frontmatterRef.current
+        ? decodeFrontmatter(markdownRef.current)
+        : markdownRef.current;
+      frontmatterRef.current = encodeFrontmatter(raw).had;
+      markdownRef.current = raw;
+      setContent(raw);
       setSourceMode(true);
     }
   }, []);
@@ -215,7 +227,11 @@ function App() {
           setWorkspace(dir);
           localStorage.setItem("noteon.workspace", dir);
         }
-        const md = await readTextFile(path);
+        const raw = await readTextFile(path);
+        // frontmatter 转成无语言代码块渲染（Milkdown 不解析 --- 头），保存时转回
+        const enc = encodeFrontmatter(raw);
+        frontmatterRef.current = enc.had;
+        const md = enc.text;
         // 大文件走源码模式（PLAN §4：>512KB 提示，不做所见即所得虚拟化）
         if (md.length > 512 * 1024 && !sourceModeRef.current) {
           if (
@@ -234,7 +250,7 @@ function App() {
         // 基线在 onReady 里用首次序列化结果建立（序列化风格与磁盘原文
         // 可能不同，如 --- → -，不能拿原文当脏检查基准）
         savedRef.current = null;
-        diskRawRef.current = md;
+        diskRawRef.current = raw;
         setDoc({ path, name: path.split("/").pop() ?? "Untitled" });
         setDirty(false);
         setStats(computeStats(md));
@@ -258,8 +274,12 @@ function App() {
         path = picked;
       }
       try {
-        await writeTextFile(path, markdownRef.current);
-        diskRawRef.current = markdownRef.current;
+        // frontmatterRef 文档写盘前把首块 ``` 转回 --- 围栏
+        const out = frontmatterRef.current
+          ? decodeFrontmatter(markdownRef.current)
+          : markdownRef.current;
+        await writeTextFile(path, out);
+        diskRawRef.current = out;
         markSaved(
           { path, name: path.split("/").pop() ?? "Untitled" },
           markdownRef.current,
@@ -274,6 +294,7 @@ function App() {
 
   const newDoc = useCallback(() => {
     markdownRef.current = "";
+    frontmatterRef.current = false;
     setContent("");
     setOutline([]);
     setEditorKey((k) => k + 1);

@@ -662,6 +662,8 @@ div.ProseMirror pre.code-block {
 }
 div.ProseMirror pre.code-block code {
   background: transparent;
+  border: none; /* 主题 code,tt 规则会给块内 code 画行内框，重置掉 */
+  border-radius: 0;
   padding: 0;
   font-size: 0.9em;
 }

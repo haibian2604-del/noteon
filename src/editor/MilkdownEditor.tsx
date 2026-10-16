@@ -87,6 +87,8 @@ export default function MilkdownEditor({
       const parser = (
         opts: Parameters<typeof lowParser>[0],
       ): ReturnType<typeof lowParser> => {
+        // 无语言块纯文本不高亮（Typora 同款，也省掉 highlightAuto 开销）
+        if (!opts.language) return [];
         try {
           return lowParser(opts);
         } catch {
