@@ -1,8 +1,15 @@
-# noteon
+<div align="center">
+  <img src="src-tauri/icons/128x128.png" alt="noteon 图标" width="128" />
+  <h1>noteon</h1>
+</div>
 
 macOS 专属的 Typora 风格 Markdown 编辑器——所见即所得、无预览分栏、主题协议兼容。
 
 架构：**Tauri 2（Rust 原生壳）+ 系统 WKWebView + Web 编辑内核**（React 19 + TypeScript + Milkdown/ProseMirror），仅针对 macOS。
+
+## 下载
+
+前往 [Releases](https://github.com/haibian2604-del/noteon/releases) 下载最新 DMG（Apple Silicon）。
 
 ## 功能
 
