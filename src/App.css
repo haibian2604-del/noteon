@@ -1,0 +1,717 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* chrome 颜色消费 Typora 主题变量（--bg-color 等，由 public/themes/*.css 提供） */
+body {
+  overflow: hidden; /* 滚动交给编辑区 */
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Overlay 标题栏：红绿灯悬浮在左上，此条同时是拖拽区 ── */
+.titlebar {
+  flex: none;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 78px; /* 避开 macOS 红绿灯 */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tb-btn {
+  border: none;
+  background: transparent;
+  color: var(--control-text-color, #777);
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+.tb-btn:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.06));
+}
+
+.doc-name {
+  font-size: 13px;
+  color: var(--control-text-color, #999);
+  margin-left: 4px;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ── 侧栏（文件 / 大纲）── */
+.sidebar {
+  width: 260px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border-color, #e5e5e5);
+  background: var(--side-bar-bg-color, var(--bg-color, #fafafa));
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px 4px;
+}
+
+.sidebar-tab {
+  border: none;
+  background: transparent;
+  color: var(--control-text-color, #777);
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.sidebar-tab.active {
+  background: var(--active-file-bg-color, rgba(0, 0, 0, 0.08));
+  color: var(--text-color, inherit);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 6px 20px;
+  font-size: 13px;
+}
+
+.sidebar-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  color: var(--control-text-color, #999);
+  padding: 0 16px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--control-text-color, #666);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tree-row:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.05));
+}
+.tree-row.active {
+  background: var(--active-file-bg-color, rgba(0, 0, 0, 0.08));
+  color: var(--text-color, inherit);
+}
+.tree-caret {
+  width: 12px;
+  flex: none;
+  display: inline-block;
+  font-size: 9px;
+  transition: transform 0.12s;
+}
+.tree-caret.open {
+  transform: rotate(90deg);
+}
+.tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-item {
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--control-text-color, #666);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outline-item:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.05));
+}
+.outline-h1 { padding-left: 6px; font-weight: 600; }
+.outline-h2 { padding-left: 20px; }
+.outline-h3 { padding-left: 34px; }
+.outline-h4 { padding-left: 48px; }
+.outline-h5 { padding-left: 62px; }
+.outline-h6 { padding-left: 76px; }
+
+/* ── 编辑区 ── */
+.editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.milkdown-host {
+  padding: 0 16px 30vh;
+}
+
+/* ProseMirror 默认聚焦描边去掉；宽度/居中由主题 CSS（.ProseMirror 规则）负责 */
+.ProseMirror {
+  outline: none;
+  margin: 0 auto;
+}
+
+/* 大纲跳转时标题不被顶栏遮住 */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  scroll-margin-top: 48px;
+}
+
+/* 专注模式：非活动段落淡化 */
+.editor-scroll.focus-mode .ProseMirror > * {
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
+}
+.editor-scroll.focus-mode .ProseMirror > [data-active] {
+  opacity: 1;
+}
+
+/* ── mermaid 代码块节点视图 ── */
+.mermaid-block .mermaid-src {
+  display: none;
+}
+.mermaid-block.editing .mermaid-src {
+  display: block;
+}
+.mermaid-block.editing .mermaid-render {
+  display: none;
+}
+.mermaid-block .mermaid-render {
+  padding: 0.6rem 0;
+  overflow-x: auto;
+  cursor: pointer;
+}
+.mermaid-block .mermaid-render svg {
+  max-width: 100%;
+  height: auto;
+}
+.mermaid-block .mermaid-render.error {
+  font-size: 13px;
+  color: #c0392b;
+  white-space: pre-wrap;
+}
+
+/* ── 暗色主题下的代码高亮（one-dark 色板，data-theme 由 App 设置）── */
+[data-theme="night"] .hljs-keyword,
+[data-theme="night"] .hljs-selector-tag,
+[data-theme="night"] .hljs-literal,
+[data-theme="night"] .hljs-section {
+  color: #c678dd;
+}
+[data-theme="night"] .hljs-string,
+[data-theme="night"] .hljs-attr,
+[data-theme="night"] .hljs-template-variable,
+[data-theme="night"] .hljs-addition {
+  color: #98c379;
+}
+[data-theme="night"] .hljs-title,
+[data-theme="night"] .hljs-title.function_,
+[data-theme="night"] .hljs-name {
+  color: #61afef;
+}
+[data-theme="night"] .hljs-number,
+[data-theme="night"] .hljs-symbol,
+[data-theme="night"] .hljs-bullet {
+  color: #d19a66;
+}
+[data-theme="night"] .hljs-comment,
+[data-theme="night"] .hljs-quote,
+[data-theme="night"] .hljs-deletion {
+  color: #7f848e;
+  font-style: italic;
+}
+[data-theme="night"] .hljs-variable,
+[data-theme="night"] .hljs-type,
+[data-theme="night"] .hljs-built_in {
+  color: #e5c07b;
+}
+
+/* ── 右键菜单 ── */
+.ctx-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 150px;
+  padding: 4px;
+  background: var(--bg-color, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.ctx-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 5px 10px;
+  font-size: 13px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text-color, #333);
+}
+.ctx-item:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.06));
+}
+
+.rename-input {
+  font-size: 13px;
+  border: 1px solid var(--primary-color, #0366d6);
+  border-radius: 4px;
+  padding: 1px 4px;
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+
+/* ── 全文搜索面板 ── */
+.sidebar-search {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.search-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+.search-btn {
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: transparent;
+  color: var(--control-text-color, #666);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.search-btn:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.05));
+}
+.search-hit {
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+.search-hit:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.05));
+}
+.search-hit .line-text {
+  display: block;
+  font-size: 12px;
+  color: var(--text-color, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-hit .hit-path {
+  display: block;
+  font-size: 11px;
+  color: var(--control-text-color, #999);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Quick Open ── */
+.quickopen-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 50;
+}
+.quickopen-panel {
+  position: fixed;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 560px;
+  max-width: 90vw;
+  background: var(--bg-color, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  z-index: 51;
+  overflow: hidden;
+}
+.quickopen-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  padding: 12px 14px;
+  font-size: 15px;
+  background: transparent;
+  color: var(--text-color, #333);
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+.quickopen-list {
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+}
+.quickopen-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-color, #333);
+}
+.quickopen-item.sel {
+  background: var(--active-file-bg-color, rgba(0, 0, 0, 0.08));
+}
+.quickopen-item .dir {
+  color: var(--control-text-color, #999);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 打印/PDF 导出样式 ── */
+@media print {
+  .titlebar,
+  .sidebar,
+  .wc-pill,
+  .wc-pop,
+  .quickopen-backdrop,
+  .quickopen-panel {
+    display: none !important;
+  }
+  html,
+  body,
+  #root,
+  .app {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .app {
+    display: block;
+  }
+  .editor-scroll {
+    overflow: visible !important;
+  }
+  .milkdown-host {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .ProseMirror {
+    max-width: none !important;
+  }
+}
+@page {
+  margin: 18mm 16mm;
+}
+
+/* 任务列表复选框（Milkdown gfm：li[data-checked="true"|"false"]） */
+.ProseMirror li[data-checked] {
+  list-style: none;
+  position: relative;
+}
+.ProseMirror li[data-checked]::before {
+  content: "";
+  position: absolute;
+  left: -1.6em;
+  top: 0.35em;
+  width: 0.85em;
+  height: 0.85em;
+  border: 1px solid var(--control-text-color, #999);
+  border-radius: 2px;
+  background: var(--bg-color, #fff);
+}
+.ProseMirror li[data-checked="true"]::before {
+  background: var(--primary-color, #0366d6);
+  border-color: var(--primary-color, #0366d6);
+}
+.ProseMirror li[data-checked="true"]::after {
+  content: "";
+  position: absolute;
+  left: -1.42em;
+  top: 0.52em;
+  width: 0.5em;
+  height: 0.24em;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+}
+
+/* ── 右下角字数统计 ── */
+.wc-pill {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 10;
+  background: var(--side-bar-bg-color, var(--bg-color, #fff));
+  color: var(--control-text-color, #777);
+  border: 1px solid var(--border-color, transparent);
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.wc-pop {
+  position: fixed;
+  right: 14px;
+  bottom: 44px;
+  z-index: 10;
+  display: grid;
+  gap: 4px;
+  background: var(--side-bar-bg-color, var(--bg-color, #fff));
+  color: var(--text-color, #333);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ── M5：源码模式 ── */
+.tb-btn.active {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.08));
+  color: var(--control-text-hover-color, #333);
+}
+:root {
+  --noteon-font-family: inherit;
+  --noteon-font-size: 16px;
+}
+/* 主题 CSS 里的 base 字号写在 .ProseMirror 上，双类选择器保证设置值优先 */
+div.ProseMirror {
+  font-family: var(--noteon-font-family);
+  font-size: var(--noteon-font-size);
+}
+.source-editor {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.source-editor .cm-editor {
+  height: 100%;
+}
+
+/* ── M5：设置页 ── */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-panel {
+  width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 18px 22px 14px;
+}
+.settings-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.settings-panel section {
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+.settings-panel h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--control-text-color, #999);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  min-height: 26px;
+}
+.settings-row > label:first-child {
+  width: 64px;
+  flex: none;
+  font-size: 13px;
+}
+.settings-seg {
+  display: inline-flex;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  border-radius: 6px;
+  overflow: hidden;
+}
+.settings-seg button {
+  border: none;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.settings-seg button.active {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.08));
+  font-weight: 600;
+}
+.settings-value {
+  font-size: 12px;
+  color: var(--control-text-color, #999);
+  width: 36px;
+}
+.settings-input {
+  flex: 1;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.settings-input:focus {
+  outline: 1px solid var(--control-text-hover-color, #4a89dc);
+}
+.settings-hint {
+  font-size: 12px;
+  color: var(--control-text-color, #999);
+}
+.settings-btn {
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color, #333);
+  font-size: 12px;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+.settings-btn:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.06));
+}
+.settings-btn.primary {
+  background: var(--control-text-hover-color, #4a89dc);
+  border-color: transparent;
+  color: #fff;
+}
+.settings-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+}
+
+/* ── 代码块：Typora md-fences 观感 + 右下角语言标签 ── */
+div.ProseMirror pre.code-block {
+  position: relative;
+  background-color: #f8f8f8;
+  border: 1px solid #e7eaed;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 15px 0;
+}
+div.ProseMirror pre.code-block code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.9em;
+}
+.code-lang-label {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-size: 12px;
+  color: #999;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.code-lang-label:empty {
+  display: none;
+}
+[data-theme="night"] div.ProseMirror pre.code-block {
+  background-color: #282c34;
+  border-color: #181a1f;
+}
+[data-theme="night"] .code-lang-label {
+  color: #7f848e;
+}
+
+/* ── ``` 语言提示弹层（Typora 式） ── */
+.lang-hint {
+  position: fixed;
+  z-index: 200;
+  min-width: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-color, #fff);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+}
+.lang-hint-item {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--text-color, #333);
+  cursor: pointer;
+}
+.lang-hint-item.sel,
+.lang-hint-item:hover {
+  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.06));
+}
+
+/* 空文档/短文档时编辑器也要占满可视列：空白处点击可聚焦输入 */
+div.ProseMirror {
+  min-height: calc(100vh - 120px);
+}
