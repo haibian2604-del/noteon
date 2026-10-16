@@ -15,6 +15,7 @@ import { decodeFrontmatter, encodeFrontmatter } from "./editor/frontmatter";
 import { setMermaidTheme } from "./editor/mermaidView";
 import Sidebar, { type OutlineItem, type SidebarTab } from "./ui/Sidebar";
 import FormatToolbar from "./ui/FormatToolbar";
+import EditorContextMenu from "./ui/EditorContextMenu";
 import QuickOpen from "./ui/QuickOpen";
 import SettingsModal, {
   FONT_FAMILY_CSS,
@@ -676,6 +677,12 @@ function App() {
           )}
           {!sourceMode && (
             <FormatToolbar
+              onCommand={runEditorCommand}
+              enabled={!settingsOpen && !quickOpen}
+            />
+          )}
+          {!sourceMode && (
+            <EditorContextMenu
               onCommand={runEditorCommand}
               enabled={!settingsOpen && !quickOpen}
             />

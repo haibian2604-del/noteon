@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { COMMANDS, runEditorCommandKey, TOOLBAR_ITEMS } from "./commands";
+import {
+  COMMANDS,
+  buildEditorMenu,
+  runEditorCommandKey,
+  TOOLBAR_ITEMS,
+} from "./commands";
 
 const EXPECTED = ["h1","h2","h3","h4","h5","h6","bullet-list","ordered-list",
   "quote","code-block","table","table-row-before","table-row-after",
@@ -29,5 +34,14 @@ describe("commands registry", () => {
       ["bold","italic","strike","inline-code","link","h1","h2","h3",
        "quote","bullet-list","ordered-list","code-block","table","hr"],
     );
+  });
+  it("buildEditorMenu:基础两组;表格/代码块按需追加", () => {
+    const base = buildEditorMenu({ inTable: false, inCodeBlock: false });
+    expect(base.map((g) => g.title)).toEqual(["段落", "格式"]);
+    const tbl = buildEditorMenu({ inTable: true, inCodeBlock: false });
+    expect(tbl[2].title).toBe("表格");
+    expect(tbl[2].items).toHaveLength(4);
+    const code = buildEditorMenu({ inTable: false, inCodeBlock: true });
+    expect(code[2].items[0].key).toBe("copy-code");
   });
 });

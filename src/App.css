@@ -796,3 +796,11 @@ div.ProseMirror blockquote.md-alert-caution { border-left-color: #cf222e; }
   --panel-bg: #252b38;
   --border: #3a4250;
 }
+
+/* ── 编辑区右键菜单分组标题（菜单本体复用 .ctx-menu）── */
+.ctx-title {
+  padding: 5px 12px 2px;
+  font-size: 11px;
+  color: #8b949e;
+  user-select: none;
+}

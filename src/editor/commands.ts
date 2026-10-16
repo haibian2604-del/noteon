@@ -83,6 +83,64 @@ export function runEditorCommandKey(ed: Editor, key: string): boolean {
   return true;
 }
 
+export interface MenuItemDef {
+  key: string;
+  label: string;
+}
+
+export interface MenuGroup {
+  title: string;
+  items: MenuItemDef[];
+}
+
+const menuItems = (keys: string[]): MenuItemDef[] =>
+  keys.map((k) => ({ key: k, label: COMMANDS[k].label }));
+
+/** 编辑区右键菜单分组；表格/代码块上下文按需追加 */
+export function buildEditorMenu(ctx: {
+  inTable: boolean;
+  inCodeBlock: boolean;
+}): MenuGroup[] {
+  const groups: MenuGroup[] = [
+    {
+      title: "段落",
+      items: menuItems([
+        "h1",
+        "h2",
+        "h3",
+        "quote",
+        "bullet-list",
+        "ordered-list",
+        "code-block",
+        "hr",
+      ]),
+    },
+    {
+      title: "格式",
+      items: menuItems(["bold", "italic", "strike", "inline-code", "link"]),
+    },
+  ];
+  if (ctx.inTable) {
+    groups.push({
+      title: "表格",
+      items: menuItems([
+        "table-row-before",
+        "table-row-after",
+        "table-col-before",
+        "table-col-after",
+      ]),
+    });
+  }
+  if (ctx.inCodeBlock) {
+    // copy-code 由组件特判（直取 pre 文本写剪贴板），不经 COMMANDS
+    groups.push({
+      title: "代码",
+      items: [{ key: "copy-code", label: "复制代码块内容" }],
+    });
+  }
+  return groups;
+}
+
 /** 工具栏展示项（顺序即展示序） */
 export const TOOLBAR_ITEMS: { key: string; title: string }[] = [
   { key: "bold", title: "加粗" },
