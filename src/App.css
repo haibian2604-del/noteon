@@ -746,3 +746,21 @@ div.ProseMirror pre.code-block code {
 div.ProseMirror {
   min-height: calc(100vh - 120px);
 }
+
+/* ── GitHub 警告框（[!NOTE] 等，decoration 加类，不改文档）── */
+div.ProseMirror blockquote.md-alert {
+  border-left-width: 4px;
+}
+div.ProseMirror .alert-marker {
+  display: none;
+}
+div.ProseMirror blockquote.md-alert-note { border-left-color: #0969da; }
+div.ProseMirror blockquote.md-alert-tip { border-left-color: #1a7f37; }
+div.ProseMirror blockquote.md-alert-important { border-left-color: #8250df; }
+div.ProseMirror blockquote.md-alert-warning { border-left-color: #9a6700; }
+div.ProseMirror blockquote.md-alert-caution { border-left-color: #cf222e; }
+[data-theme="night"] div.ProseMirror blockquote.md-alert-note { border-left-color: #4493f8; }
+[data-theme="night"] div.ProseMirror blockquote.md-alert-tip { border-left-color: #3fb950; }
+[data-theme="night"] div.ProseMirror blockquote.md-alert-important { border-left-color: #ab7df8; }
+[data-theme="night"] div.ProseMirror blockquote.md-alert-warning { border-left-color: #d29922; }
+[data-theme="night"] div.ProseMirror blockquote.md-alert-caution { border-left-color: #f85149; }

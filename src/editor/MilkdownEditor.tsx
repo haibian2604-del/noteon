@@ -11,6 +11,8 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { saveImage } from "../bridge/ipc";
 import { mermaidView } from "./mermaidView";
 import { createLangHintPlugin } from "./langHint";
+import { alertPlugin } from "./alerts";
+import { applyRawBracketText } from "./serialize";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github.css";
 
@@ -136,6 +138,7 @@ export default function MilkdownEditor({
             onChangeRef.current(markdown);
           });
           ctx.update(uploadConfig.key, (prev) => ({ ...prev, uploader }));
+          applyRawBracketText(ctx);
         })
         .use(commonmark)
         .use(gfm)
@@ -145,6 +148,7 @@ export default function MilkdownEditor({
         .use(upload)
         .use(mermaidView)
         .use(highlightPlugin)
+        .use(alertPlugin)
         .use($prose(() => createLangHintPlugin()));
 
       if (disposed) {
