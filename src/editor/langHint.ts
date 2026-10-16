@@ -1,4 +1,4 @@
-import { Plugin, PluginKey, type EditorState } from "@milkdown/kit/prose/state";
+import { Plugin, PluginKey, TextSelection, type EditorState } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 
 /** Typora 式语言提示：在段落里输入 ``` 前缀后弹出语言候选，↑↓ 选择、回车/点击确认 */
@@ -164,11 +164,21 @@ export function createLangHintPlugin(): Plugin<HintState | undefined> {
   });
 }
 
-/** 确认语言：替换 ``` 前缀里的 query，补一个空格触发 code_block 输入规则 */
+/** 确认语言：程序化 insertText 不会触发输入规则，直接把段落转成 code_block */
 function pickLang(view: EditorView, lang: string): void {
   const hint = langHintKey.getState(view.state);
   if (!hint || !lang) return;
-  const { from } = hint;
-  const to = from + hint.query.length;
-  view.dispatch(view.state.tr.insertText(`${lang} `, from, to));
+  const { state } = view;
+  const $from = state.selection.$from;
+  if ($from.parent.type.name !== "paragraph") return;
+  const type = state.schema.nodes.code_block;
+  if (!type) return;
+  const start = $from.start();
+  // 连 ``` 围栏一起清掉（hint.from 是 query 起点）
+  const tr = state.tr.delete(hint.from - 3, hint.from + hint.query.length);
+  tr.setNodeMarkup(start - 1, type, { language: lang });
+  tr.setSelection(
+    TextSelection.near(tr.doc.resolve(tr.mapping.map(start)), 1),
+  );
+  view.dispatch(tr.scrollIntoView());
 }
