@@ -458,6 +458,16 @@ function App() {
     };
   }, [newDoc, doSave, openPath, pickFolder, runEditorCommand, openQuickOpen, handleExport, toggleSidebar, toggleSourceMode]);
 
+  // macOS「打开方式」/ Finder 双击打开 md
+  useEffect(() => {
+    const unlisten = listen<string>("noteon://open-file", (event) => {
+      void openPath(event.payload);
+    });
+    return () => {
+      void unlisten.then((off) => off());
+    };
+  }, [openPath]);
+
   // 网页内快捷键兜底：可编辑元素持有焦点时 WKWebView 会吞掉原生菜单加速键，
   // ⌘/（源码模式）与 ⌘,（设置）在此补一份；CM 内部的 Mod-/ 会先 preventDefault，这里跳过避免双触发
   useEffect(() => {

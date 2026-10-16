@@ -2,7 +2,7 @@ mod commands;
 mod menu;
 
 use std::sync::Mutex;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// 命令行传入的待打开文件路径（窗口加载完成前前端无法收事件，先暂存）
 struct PendingOpen(Mutex<Option<String>>);
@@ -42,8 +42,21 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // macOS「打开方式」/ Finder 双击：转换 file:// URL 后转发前端；
+            // 同时写入 PendingOpen 兜底（事件先于窗口加载时由前端启动流程取走）
+            if let tauri::RunEvent::Opened { urls } = event {
+                for url in urls {
+                    if let Ok(path) = url.to_file_path() {
+                        let path = path.to_string_lossy().to_string();
+                        *app.state::<PendingOpen>().0.lock().unwrap() = Some(path.clone());
+                        let _ = app.emit("noteon://open-file", path);
+                    }
+                }
+            }
+        });
 }
 
 #[tauri::command]
