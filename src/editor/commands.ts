@@ -20,6 +20,7 @@ import {
   insertTableCommand,
   toggleStrikethroughCommand,
 } from "@milkdown/kit/preset/gfm";
+import { ALERT_KINDS, ALERT_LABELS, applyAlert } from "./alerts";
 
 export interface CommandDef {
   label: string;
@@ -65,6 +66,14 @@ export const COMMANDS: Record<string, CommandDef> = {
   "inline-code": cmd("行内代码", toggleInlineCodeCommand.key),
   link: cmd("链接", toggleLinkCommand.key),
 };
+
+// 警告框命令（GitHub Alerts，选区一键转换）
+for (const k of ALERT_KINDS) {
+  COMMANDS["alert:" + k] = {
+    label: ALERT_LABELS[k],
+    run: (ed) => applyAlert(ed, k),
+  };
+}
 
 /** 未知键返回 false 且不碰 ed */
 export function runEditorCommandKey(ed: Editor, key: string): boolean {

@@ -1,4 +1,8 @@
 import { $prose } from "@milkdown/kit/utils";
+import type { Editor } from "@milkdown/kit/core";
+import { editorViewCtx } from "@milkdown/kit/core";
+import { callCommand } from "@milkdown/kit/utils";
+import { wrapInBlockquoteCommand } from "@milkdown/kit/preset/commonmark";
 import type { Node as PMNode } from "@milkdown/kit/prose/model";
 import { Plugin, PluginKey } from "@milkdown/kit/prose/state";
 import type { EditorState } from "@milkdown/kit/prose/state";
@@ -55,8 +59,21 @@ function firstLineText(par: PMNode): string {
   return out;
 }
 
-/** 找段落（或嵌套结构里第一个文本块）的首行，整行匹配才算警告框 */
-function scanQuote(doc: PMNode, quotePos: number, quote: PMNode): AlertHit | null {
+interface QuoteHead {
+  /** 第一个文本块的内容起点（文档绝对位置） */
+  textStart: number;
+  /** 首行整行文本 */
+  line: string;
+  /** 首行匹配到的警告框类型；null = 非警告框 */
+  kind: AlertKind | null;
+}
+
+/** 找段落（或嵌套结构里第一个文本块）的首行，供扫描与 applyAlert 复用 */
+function scanQuoteHead(
+  doc: PMNode,
+  quotePos: number,
+  quote: PMNode,
+): QuoteHead | null {
   let textBlock: PMNode | null = null;
   let textStart = -1;
   // nodesBetween 给绝对位置；文本块内容从节点位置 +1 开始
@@ -70,14 +87,7 @@ function scanQuote(doc: PMNode, quotePos: number, quote: PMNode): AlertHit | nul
   });
   if (!textBlock) return null;
   const line = firstLineText(textBlock);
-  const kind = parseAlertLine(line);
-  if (!kind) return null;
-  return {
-    quotePos,
-    kind,
-    markerFrom: textStart,
-    markerTo: textStart + line.length,
-  };
+  return { textStart, line, kind: parseAlertLine(line) };
 }
 
 /** 只认"blockquote 第一个子节点的第一个文本块的第一行" */
@@ -85,10 +95,52 @@ export function scanAlerts(doc: PMNode): AlertHit[] {
   const hits: AlertHit[] = [];
   doc.forEach((node, offset) => {
     if (node.type.name !== "blockquote") return;
-    const hit = scanQuote(doc, offset, node);
-    if (hit) hits.push(hit);
+    const head = scanQuoteHead(doc, offset, node);
+    if (head?.kind) {
+      hits.push({
+        quotePos: offset,
+        kind: head.kind,
+        markerFrom: head.textStart,
+        markerTo: head.textStart + head.line.length,
+      });
+    }
   });
   return hits;
+}
+
+/**
+ * 对当前选区应用警告框：不在引用内先包一层，然后在引用头部插入
+ * 独占一行的 [!KIND] 段落（已有 marker 则原位替换并统一为大写）。
+ * 包引用与写 marker 相邻同刻提交，历史合并为一步撤销。
+ */
+export function applyAlert(ed: Editor, kind: AlertKind): void {
+  ed.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const MARKER = "[!" + kind.toUpperCase() + "]";
+    if (view.state.selection.$from.node(1).type.name !== "blockquote") {
+      callCommand(wrapInBlockquoteCommand.key)(ctx);
+    }
+    const $from = view.state.selection.$from;
+    if ($from.depth < 1 || $from.node(1).type.name !== "blockquote") return;
+    const quotePos = $from.before(1);
+    const doc = view.state.doc;
+    const quote = doc.nodeAt(quotePos);
+    if (!quote) return;
+    const head = scanQuoteHead(doc, quotePos, quote);
+    if (!head) return;
+    const schema = doc.type.schema;
+    const tr = view.state.tr;
+    if (head.kind) {
+      // 原位替换 marker（首行整段就是 marker 时的常规路径）
+      const markerEnd = head.textStart + head.line.length;
+      tr.replaceWith(head.textStart, markerEnd, schema.text(MARKER));
+    } else {
+      // marker 独立成段，插在引用最前（硬换行会序列化成 \，GitHub 不认）
+      const par = schema.nodes.paragraph.create(null, schema.text(MARKER));
+      tr.insert(quotePos + 1, par);
+    }
+    view.dispatch(tr);
+  });
 }
 
 function buildDecorations(state: EditorState): DecorationSet {

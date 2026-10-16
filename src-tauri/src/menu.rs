@@ -79,6 +79,12 @@ pub fn build<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     para_menu.append(&item(app, "para:table-col-before", "在左侧插入列", None)?)?;
     para_menu.append(&item(app, "para:table-col-after", "在右侧插入列", None)?)?;
     para_menu.append(&item(app, "para:hr", "水平分割线", None)?)?;
+    para_menu.append(&PredefinedMenuItem::separator(app)?)?;
+    para_menu.append(&item(app, "alert:note", "注意 [!NOTE]", None)?)?;
+    para_menu.append(&item(app, "alert:tip", "建议 [!TIP]", None)?)?;
+    para_menu.append(&item(app, "alert:important", "重要 [!IMPORTANT]", None)?)?;
+    para_menu.append(&item(app, "alert:warning", "警告 [!WARNING]", None)?)?;
+    para_menu.append(&item(app, "alert:caution", "危险 [!CAUTION]", None)?)?;
 
     // ── 格式 ──
     let fmt_menu = Submenu::with_id(app, "fmt", "格式", true)?;

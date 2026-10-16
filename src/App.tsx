@@ -441,6 +441,9 @@ function App() {
         case "para":
           if (arg) runEditorCommand(arg);
           break;
+        case "alert":
+          if (arg) runEditorCommand(`alert:${arg}`);
+          break;
         case "fmt":
           if (arg) runEditorCommand(arg);
           break;

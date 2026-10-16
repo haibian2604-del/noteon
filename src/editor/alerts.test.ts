@@ -10,7 +10,7 @@ import { gfm } from "@milkdown/kit/preset/gfm";
 import { getMarkdown } from "@milkdown/kit/utils";
 import { math } from "@milkdown/plugin-math";
 import type { Node as PMNode } from "@milkdown/kit/prose/model";
-import { parseAlertLine, scanAlerts } from "./alerts";
+import { parseAlertLine, scanAlerts, applyAlert } from "./alerts";
 import { applyRawBracketText } from "./serialize";
 
 // 与 MilkdownEditor.tsx 相同的配置（含裸方括号序列化），测真实管线
@@ -99,6 +99,35 @@ describe("github alerts", () => {
     expect(second).toBe(first);
     expect(first).toContain("> [!NOTE]");
     await ed.destroy();
+  });
+
+  it("applyAlert:普通段落 → 警告框引用", async () => {
+    const ed = await makeEditor("一段文字"); // create() 后选区默认落在首段
+    applyAlert(ed, "tip");
+    const md = getMd(ed);
+    // marker 必须独占引用首行（GitHub 规范），且能往返重识别
+    expect(md.split("\n")[0]).toBe("> [!TIP]");
+    const re = await makeEditor(md);
+    const hits = scanAlerts(getDoc(re));
+    expect(hits).toHaveLength(1);
+    expect(hits[0].kind).toBe("tip");
+    expect(getMd(re)).toBe(md);
+    await Promise.all([ed.destroy(), re.destroy()]);
+  });
+
+  it("applyAlert:已有 plain 引用 → 加 marker;已有 marker → 换 kind", async () => {
+    const ed = await makeEditor("> 引用内容\n");
+    applyAlert(ed, "warning");
+    const md1 = getMd(ed);
+    expect(md1.split("\n")[0]).toBe("> [!WARNING]");
+    applyAlert(ed, "caution");
+    const md2 = getMd(ed);
+    expect(md2.split("\n")[0]).toBe("> [!CAUTION]");
+    expect(md2).toContain("引用内容");
+    // 换完 kind 仍是可识别的警告框
+    const re = await makeEditor(md2);
+    expect(scanAlerts(getDoc(re)).map((h) => h.kind)).toEqual(["caution"]);
+    await Promise.all([ed.destroy(), re.destroy()]);
   });
 
   it("序列化电池:富文档幂等,方括号/既有标记不劣化", async () => {
