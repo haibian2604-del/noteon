@@ -471,7 +471,7 @@ function App() {
         setSettingsOpen(true);
       } else if (e.key === "f") {
         e.preventDefault();
-        if (!sourceModeRef.current) setFindOpen(true);
+        if (!sourceModeRef.current) setFindOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
