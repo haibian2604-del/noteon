@@ -666,6 +666,8 @@ div.ProseMirror pre.code-block code {
   border-radius: 0;
   padding: 0;
   font-size: 0.9em;
+  white-space: pre-wrap; /* 长行折行（Typora 同款），不横向溢出 */
+  word-break: break-word;
 }
 .code-lang-label {
   position: absolute;
