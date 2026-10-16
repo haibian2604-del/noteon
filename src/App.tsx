@@ -7,28 +7,9 @@ import {
   save as saveFileDialog,
 } from "@tauri-apps/plugin-dialog";
 import { Editor, editorViewCtx } from "@milkdown/kit/core";
-import { callCommand, getMarkdown } from "@milkdown/kit/utils";
-import {
-  createCodeBlockCommand,
-  insertHrCommand,
-  toggleEmphasisCommand,
-  toggleInlineCodeCommand,
-  toggleLinkCommand,
-  toggleStrongCommand,
-  wrapInBlockquoteCommand,
-  wrapInBulletListCommand,
-  wrapInHeadingCommand,
-  wrapInOrderedListCommand,
-} from "@milkdown/kit/preset/commonmark";
-import {
-  addColAfterCommand,
-  addColBeforeCommand,
-  addRowAfterCommand,
-  addRowBeforeCommand,
-  insertTableCommand,
-  toggleStrikethroughCommand,
-} from "@milkdown/kit/preset/gfm";
+import { getMarkdown } from "@milkdown/kit/utils";
 import MilkdownEditor from "./editor/MilkdownEditor";
+import { runEditorCommandKey } from "./editor/commands";
 import SourceEditor, { type SourceEditorHandle } from "./editor/SourceEditor";
 import { decodeFrontmatter, encodeFrontmatter } from "./editor/frontmatter";
 import { setMermaidTheme } from "./editor/mermaidView";
@@ -315,39 +296,7 @@ function App() {
   // 菜单动作 → 编辑器命令
   const runEditorCommand = useCallback((key: string) => {
     const ed = editorRef.current;
-    if (!ed) return;
-    const map: Record<string, [unknown, unknown?]> = {
-      h1: [wrapInHeadingCommand.key, 1],
-      h2: [wrapInHeadingCommand.key, 2],
-      h3: [wrapInHeadingCommand.key, 3],
-      h4: [wrapInHeadingCommand.key, 4],
-      h5: [wrapInHeadingCommand.key, 5],
-      h6: [wrapInHeadingCommand.key, 6],
-      "bullet-list": [wrapInBulletListCommand.key],
-      "ordered-list": [wrapInOrderedListCommand.key],
-      quote: [wrapInBlockquoteCommand.key],
-      "code-block": [createCodeBlockCommand.key],
-      table: [insertTableCommand.key, { row: 3, col: 3 }],
-      "table-row-before": [addRowBeforeCommand.key],
-      "table-row-after": [addRowAfterCommand.key],
-      "table-col-before": [addColBeforeCommand.key],
-      "table-col-after": [addColAfterCommand.key],
-      hr: [insertHrCommand.key],
-      bold: [toggleStrongCommand.key],
-      italic: [toggleEmphasisCommand.key],
-      strike: [toggleStrikethroughCommand.key],
-      "inline-code": [toggleInlineCodeCommand.key],
-      link: [toggleLinkCommand.key],
-    };
-    const entry = map[key];
-    if (!entry) return;
-    const [cmdKey, payload] = entry;
-    ed.action(
-      callCommand(
-        cmdKey as Parameters<typeof callCommand>[0],
-        payload as never,
-      ),
-    );
+    if (ed) runEditorCommandKey(ed, key);
   }, []);
 
   // 文件树操作：变更后同步活跃文档状态
