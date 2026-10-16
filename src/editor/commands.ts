@@ -83,7 +83,7 @@ export function runEditorCommandKey(ed: Editor, key: string): boolean {
   return true;
 }
 
-/** 工具栏展示项（Task 4 定稿完整列表） */
+/** 工具栏展示项（顺序即展示序） */
 export const TOOLBAR_ITEMS: { key: string; title: string }[] = [
   { key: "bold", title: "加粗" },
   { key: "italic", title: "斜体" },
@@ -96,4 +96,7 @@ export const TOOLBAR_ITEMS: { key: string; title: string }[] = [
   { key: "quote", title: "引用" },
   { key: "bullet-list", title: "无序列表" },
   { key: "ordered-list", title: "有序列表" },
+  { key: "code-block", title: "代码块" },
+  { key: "table", title: "表格" },
+  { key: "hr", title: "分割线" },
 ];

@@ -24,4 +24,10 @@ describe("commands registry", () => {
       expect(item.title.length).toBeGreaterThan(0);
     }
   });
+  it("TOOLBAR_ITEMS 定稿 14 项且含 code-block/table/hr", () => {
+    expect(TOOLBAR_ITEMS.map((i) => i.key)).toEqual(
+      ["bold","italic","strike","inline-code","link","h1","h2","h3",
+       "quote","bullet-list","ordered-list","code-block","table","hr"],
+    );
+  });
 });

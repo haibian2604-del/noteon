@@ -764,3 +764,35 @@ div.ProseMirror blockquote.md-alert-caution { border-left-color: #cf222e; }
 [data-theme="night"] div.ProseMirror blockquote.md-alert-important { border-left-color: #ab7df8; }
 [data-theme="night"] div.ProseMirror blockquote.md-alert-warning { border-left-color: #d29922; }
 [data-theme="night"] div.ProseMirror blockquote.md-alert-caution { border-left-color: #f85149; }
+
+/* ── 选区浮动格式工具栏 ── */
+.format-toolbar {
+  position: fixed;
+  z-index: 90;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--panel-bg, #ffffff);
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+.ft-btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ft-btn:hover {
+  background: rgba(125, 125, 125, 0.16);
+}
+[data-theme="night"] .format-toolbar {
+  --panel-bg: #252b38;
+  --border: #3a4250;
+}
