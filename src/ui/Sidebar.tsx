@@ -8,6 +8,25 @@ import {
   type DirEntry,
   type SearchHit,
 } from "../bridge/ipc";
+import {
+  DEFAULT_FILE_FILTER,
+  filterEntries,
+  type FileFilter,
+} from "./treeFilter";
+
+function loadFileFilter(): FileFilter {
+  try {
+    const raw = localStorage.getItem("noteon.fileFilter");
+    if (!raw) return DEFAULT_FILE_FILTER;
+    const p = JSON.parse(raw) as Partial<FileFilter>;
+    if (p.mode === "default" || p.mode === "all" || p.mode === "glob") {
+      return { mode: p.mode, pattern: typeof p.pattern === "string" ? p.pattern : "" };
+    }
+  } catch {
+    // 损坏即回默认
+  }
+  return DEFAULT_FILE_FILTER;
+}
 
 export interface OutlineItem {
   level: number;
@@ -54,6 +73,7 @@ function FileTreeRow({
   activePath,
   renaming,
   setRenaming,
+  filter,
   onOpenFile,
   onContextMenu,
   onRename,
@@ -63,6 +83,7 @@ function FileTreeRow({
   activePath: string | null;
   renaming: { path: string; value: string } | null;
   setRenaming: (v: { path: string; value: string } | null) => void;
+  filter: FileFilter;
   onOpenFile: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, entry: Entry) => void;
   onRename: (from: string, to: string) => void;
@@ -134,7 +155,7 @@ function FileTreeRow({
           <span className="tree-name">{entry.name}</span>
         )}
       </div>
-      {entry.is_dir && expanded && children?.map((c) => (
+      {entry.is_dir && expanded && filterEntries(children ?? [], filter).map((c) => (
         <FileTreeRow
           key={c.path}
           entry={c}
@@ -142,6 +163,7 @@ function FileTreeRow({
           activePath={activePath}
           renaming={renaming}
           setRenaming={setRenaming}
+          filter={filter}
           onOpenFile={onOpenFile}
           onContextMenu={onContextMenu}
           onRename={onRename}
@@ -240,6 +262,11 @@ export default function Sidebar({
   const [renaming, setRenaming] = useState<{ path: string; value: string } | null>(
     null,
   );
+  const [filter, setFilter] = useState<FileFilter>(loadFileFilter);
+
+  useEffect(() => {
+    localStorage.setItem("noteon.fileFilter", JSON.stringify(filter));
+  }, [filter]);
 
   useEffect(() => {
     if (!workspace || tab !== "files") {
@@ -382,7 +409,7 @@ export default function Sidebar({
           setCtxMenu({ x: e.clientX, y: e.clientY, entry: null });
         }}
       >
-        {roots.map((e) => (
+        {filterEntries(roots, filter).map((e) => (
           <FileTreeRow
             key={e.path}
             entry={e}
@@ -390,6 +417,7 @@ export default function Sidebar({
             activePath={activePath}
             renaming={renaming}
             setRenaming={setRenaming}
+            filter={filter}
             onOpenFile={onOpenFile}
             onContextMenu={(e, entry) => {
               e.preventDefault();
@@ -404,6 +432,33 @@ export default function Sidebar({
 
   return (
     <>
+      {tab === "files" && workspace && (
+        <div className="tree-filter">
+          <select
+            value={filter.mode}
+            onChange={(e) =>
+              setFilter((f) => ({
+                ...f,
+                mode: e.target.value as FileFilter["mode"],
+              }))
+            }
+          >
+            <option value="default">隐藏点开头</option>
+            <option value="all">全部</option>
+            <option value="glob">匹配模式</option>
+          </select>
+          {filter.mode === "glob" && (
+            <input
+              className="tree-filter-input"
+              placeholder="如 *.md 或笔记*"
+              value={filter.pattern}
+              onChange={(e) =>
+                setFilter((f) => ({ ...f, pattern: e.target.value }))
+              }
+            />
+          )}
+        </div>
+      )}
       {body}
       {ctxMenu && (
         <div

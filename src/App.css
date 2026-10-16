@@ -884,3 +884,27 @@ div.ProseMirror .find-current {
   --bg-color: #252b38;
   --border-color: #3a4250;
 }
+
+/* ── 文件树过滤条 ── */
+.tree-filter {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+.tree-filter select,
+.tree-filter-input {
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+.tree-filter select {
+  flex: none;
+}
+.tree-filter-input {
+  flex: 1;
+}
