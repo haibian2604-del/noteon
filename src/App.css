@@ -908,3 +908,12 @@ div.ProseMirror .find-current {
 .tree-filter-input {
   flex: 1;
 }
+
+/* ── 文件树键盘导航光标 ── */
+.tree-row.cursor {
+  background: rgba(125, 125, 125, 0.18);
+}
+.sidebar-content:focus-visible {
+  outline: 1px solid #0969da;
+  outline-offset: -1px;
+}

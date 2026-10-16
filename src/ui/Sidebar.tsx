@@ -13,6 +13,7 @@ import {
   filterEntries,
   type FileFilter,
 } from "./treeFilter";
+import { moveCursor } from "./treeNav";
 
 function loadFileFilter(): FileFilter {
   try {
@@ -71,6 +72,7 @@ function FileTreeRow({
   entry,
   depth,
   activePath,
+  cursorPath,
   renaming,
   setRenaming,
   filter,
@@ -81,6 +83,7 @@ function FileTreeRow({
   entry: Entry;
   depth: number;
   activePath: string | null;
+  cursorPath: string | null;
   renaming: { path: string; value: string } | null;
   setRenaming: (v: { path: string; value: string } | null) => void;
   filter: FileFilter;
@@ -125,8 +128,12 @@ function FileTreeRow({
   return (
     <>
       <div
-        className={`tree-row${entry.path === activePath ? " active" : ""}`}
+        className={`tree-row${entry.path === activePath ? " active" : ""}${
+          entry.path === cursorPath ? " cursor" : ""
+        }`}
         style={{ paddingLeft: 6 + depth * 14 }}
+        data-path={entry.path}
+        data-kind={entry.is_dir ? "dir" : "file"}
         onClick={() => void toggle()}
         onContextMenu={(e) => onContextMenu(e, entry)}
         title={entry.path}
@@ -161,6 +168,7 @@ function FileTreeRow({
           entry={c}
           depth={depth + 1}
           activePath={activePath}
+          cursorPath={cursorPath}
           renaming={renaming}
           setRenaming={setRenaming}
           filter={filter}
@@ -172,7 +180,6 @@ function FileTreeRow({
     </>
   );
 }
-
 function SearchPanel({
   workspace,
   onOpenHit,
@@ -263,9 +270,12 @@ export default function Sidebar({
     null,
   );
   const [filter, setFilter] = useState<FileFilter>(loadFileFilter);
+  const [cursorPath, setCursorPath] = useState<string | null>(null);
+  const filesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     localStorage.setItem("noteon.fileFilter", JSON.stringify(filter));
+    setCursorPath(null); // 行集变了，光标可能悬空
   }, [filter]);
 
   useEffect(() => {
@@ -362,6 +372,41 @@ export default function Sidebar({
     return items;
   };
 
+  const onTreeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // 重命名输入框里不抢按键
+      if (e.target instanceof HTMLInputElement) return;
+      const container = filesRef.current;
+      if (!container) return;
+      const rows = Array.from(
+        container.querySelectorAll<HTMLElement>(".tree-row"),
+      );
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const cur = rows.findIndex((r) => r.dataset.path === cursorPath);
+        const next = moveCursor(
+          cur < 0 ? null : cur,
+          rows.length,
+          e.key === "ArrowDown" ? "down" : "up",
+        );
+        setCursorPath(next === null ? null : (rows[next].dataset.path ?? null));
+        if (next !== null) rows[next]?.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "Enter" || e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const el = rows.find((r) => r.dataset.path === cursorPath);
+        if (!el) return;
+        e.preventDefault();
+        if (el.dataset.kind === "dir") {
+          el.click(); // 展开/收起都是同一次点击
+          return;
+        }
+        if (e.key !== "ArrowLeft" && cursorPath) onOpenFile(cursorPath);
+      }
+    },
+    [cursorPath, onOpenFile],
+  );
+
   if (tab === "outline") {
     if (outline.length === 0) {
       return <div className="sidebar-hint">暂无大纲（文档为空或无标题）</div>;
@@ -402,7 +447,10 @@ export default function Sidebar({
   } else {
     body = (
       <div
+        ref={filesRef}
         className="sidebar-content"
+        tabIndex={0}
+        onKeyDown={onTreeKeyDown}
         onContextMenu={(e) => {
           if ((e.target as HTMLElement).closest(".tree-row")) return;
           e.preventDefault();
@@ -415,6 +463,7 @@ export default function Sidebar({
             entry={e}
             depth={0}
             activePath={activePath}
+            cursorPath={cursorPath}
             renaming={renaming}
             setRenaming={setRenaming}
             filter={filter}
