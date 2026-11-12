@@ -48,21 +48,27 @@ const LANGUAGE_ICONS: Record<string, string> = {
   swift: "swift", typescript: "typescript", yaml: "yaml",
 };
 
+export function createLanguageIcon(name: string): HTMLImageElement | null {
+  const icon = LANGUAGE_ICONS[name.toLowerCase()];
+  if (typeof icon !== "string") return null;
+  const image = document.createElement("img");
+  image.className = "language-icon";
+  image.src = `/language-icons/${icon}.svg`;
+  image.alt = "";
+  image.setAttribute("aria-hidden", "true");
+  image.draggable = false;
+  image.onerror = () => image.remove();
+  return image;
+}
+
 function createLanguageRow(name: string, selected: boolean, onPick: (language: string) => void): HTMLDivElement {
   const row = document.createElement("div");
   row.className = `lang-hint-item${selected ? " sel" : ""}`;
   const slot = document.createElement("span");
   slot.className = "lang-hint-icon";
   slot.setAttribute("aria-hidden", "true");
-  const icon = LANGUAGE_ICONS[name];
-  if (icon) {
-    const image = document.createElement("img");
-    image.src = `/language-icons/${icon}.svg`;
-    image.alt = "";
-    image.draggable = false;
-    image.onerror = () => image.remove();
-    slot.appendChild(image);
-  }
+  const icon = createLanguageIcon(name);
+  if (icon) slot.appendChild(icon);
   row.append(slot, document.createTextNode(name));
   row.onmousedown = (event) => {
     event.preventDefault(); // 抢在 blur 前完成选择，点击图标也选中同一语言。

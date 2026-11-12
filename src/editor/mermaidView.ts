@@ -2,6 +2,7 @@ import { $view } from "@milkdown/kit/utils";
 import { codeBlockSchema } from "@milkdown/kit/preset/commonmark";
 import type { Node as PMNode } from "@milkdown/kit/prose/model";
 import type { EditorView, NodeView } from "@milkdown/kit/prose/view";
+import { createLanguageIcon, openLangPicker } from "./langHint";
 
 type MermaidApi = (typeof import("mermaid"))["default"];
 type MermaidThemeName = "default" | "dark";
@@ -149,19 +150,17 @@ class LabeledCodeBlockView implements NodeView {
       e.stopPropagation();
     };
     this.label.onclick = () => {
-      void import("./langHint").then(({ openLangPicker }) => {
-        openLangPicker(
-          this.label.getBoundingClientRect(),
-          String(node.attrs.language ?? ""),
-          (lang) => {
-            const pos = getPos();
-            if (pos === undefined) return;
-            view.dispatch(
-              view.state.tr.setNodeMarkup(pos, undefined, { language: lang }),
-            );
-          },
-        );
-      });
+      openLangPicker(
+        this.label.getBoundingClientRect(),
+        this.label.textContent ?? "",
+        (lang) => {
+          const pos = getPos();
+          if (pos === undefined) return;
+          view.dispatch(
+            view.state.tr.setNodeMarkup(pos, undefined, { language: lang }),
+          );
+        },
+      );
     };
     this.contentDOM = document.createElement("code");
     this.dom.append(this.contentDOM, this.label);
@@ -173,7 +172,11 @@ class LabeledCodeBlockView implements NodeView {
     const language = String(node.attrs.language ?? "");
     // 语言不变时保留标签 DOM，避免每次输入、换行都产生额外变更。
     if (this.dom.dataset.language !== language) this.dom.dataset.language = language;
-    if (this.label.textContent !== language) this.label.textContent = language;
+    if (this.label.textContent !== language) {
+      this.label.textContent = language;
+      const icon = createLanguageIcon(language);
+      if (icon) this.label.prepend(icon);
+    }
     return true;
   }
 

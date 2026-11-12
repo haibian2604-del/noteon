@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from "@milkdown/kit/core";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { history, undoCommand } from "@milkdown/kit/plugin/history";
@@ -20,6 +20,26 @@ async function makeEditor(markdown: string, readOnly = false) {
 }
 
 describe("code block deletion", () => {
+  it("shows and updates the code block language icon without touching code", async () => {
+    const { editor, view, root } = await makeEditor("```go\npackage main\n```");
+    try {
+      const label = root.querySelector(".code-lang-label")!;
+      expect(label.querySelector("img")?.getAttribute("src")).toBe("/language-icons/go.svg");
+      expect(label.textContent).toBe("go");
+      view.dispatch(view.state.tr.setNodeMarkup(0, undefined, { language: "python" }));
+      expect(label.querySelector("img")?.getAttribute("src")).toBe("/language-icons/python.svg");
+      expect(view.state.doc.firstChild?.textContent).toBe("package main");
+      view.dispatch(view.state.tr.setNodeMarkup(0, undefined, { language: "unknown-language" }));
+      expect(label.querySelector("img")).toBeNull();
+      expect(label.textContent).toBe("unknown-language");
+      label.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await vi.waitFor(() => {
+        expect(document.querySelector<HTMLInputElement>(".lang-picker-input")?.value).toBe("unknown-language");
+      });
+      document.querySelector(".lang-picker-input")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    } finally { await editor.destroy(); root.remove(); }
+  });
+
   it("keeps language label DOM stable when inserting newlines", async () => {
     const { editor, view, root } = await makeEditor("```python\nprint(1)\n```");
     try {
