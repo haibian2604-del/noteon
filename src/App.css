@@ -742,11 +742,30 @@ div.ProseMirror pre.code-block code {
   padding: 4px;
 }
 .lang-hint-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 5px 12px;
   border-radius: 5px;
   font-size: 13px;
   color: var(--text-color, #333);
   cursor: pointer;
+}
+.lang-hint-icon {
+  display: inline-flex;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+.lang-hint-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+[data-theme="night"] .lang-hint-icon img[src$="/rust.svg"],
+[data-theme="night"] .lang-hint-icon img[src$="/markdown.svg"],
+[data-theme="night"] .lang-hint-icon img[src$="/json.svg"] {
+  filter: invert(1);
 }
 .lang-hint-item.sel,
 .lang-hint-item:hover {

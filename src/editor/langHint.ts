@@ -39,6 +39,38 @@ interface HintMeta {
 
 const MAX_ITEMS = 8;
 
+const LANGUAGE_ICONS: Record<string, string> = {
+  bash: "bash", c: "c", cpp: "cplusplus", csharp: "csharp", css: "css3",
+  dockerfile: "docker", go: "go", java: "java", javascript: "javascript",
+  json: "json", kotlin: "kotlin", lua: "lua", markdown: "markdown",
+  perl: "perl", pgsql: "postgresql", php: "php", "php-template": "php",
+  python: "python", ruby: "ruby", rust: "rust", scss: "sass",
+  swift: "swift", typescript: "typescript", yaml: "yaml",
+};
+
+function createLanguageRow(name: string, selected: boolean, onPick: (language: string) => void): HTMLDivElement {
+  const row = document.createElement("div");
+  row.className = `lang-hint-item${selected ? " sel" : ""}`;
+  const slot = document.createElement("span");
+  slot.className = "lang-hint-icon";
+  slot.setAttribute("aria-hidden", "true");
+  const icon = LANGUAGE_ICONS[name];
+  if (icon) {
+    const image = document.createElement("img");
+    image.src = `/language-icons/${icon}.svg`;
+    image.alt = "";
+    image.draggable = false;
+    image.onerror = () => image.remove();
+    slot.appendChild(image);
+  }
+  row.append(slot, document.createTextNode(name));
+  row.onmousedown = (event) => {
+    event.preventDefault(); // 抢在 blur 前完成选择，点击图标也选中同一语言。
+    onPick(name);
+  };
+  return row;
+}
+
 function filterLangs(query: string): string[] {
   const q = query.toLowerCase();
   const hit = (l: LangEntry) =>
@@ -133,14 +165,7 @@ export function createLangHintPlugin(): Plugin<HintState | undefined> {
     const render = (view: EditorView, hint: HintState) => {
       popup.innerHTML = "";
       hint.items.forEach((name, i) => {
-        const row = document.createElement("div");
-        row.className = `lang-hint-item${i === hint.selected ? " sel" : ""}`;
-        row.textContent = name;
-        row.onmousedown = (e) => {
-          e.preventDefault(); // 抢在 blur 前完成选择
-          pickLang(view, name);
-        };
-        popup.appendChild(row);
+        popup.appendChild(createLanguageRow(name, i === hint.selected, (lang) => pickLang(view, lang)));
       });
       popup.style.display = "block";
       try {
@@ -243,14 +268,7 @@ export function openLangPicker(
     picker.selected = 0;
     list.innerHTML = "";
     picker.items.forEach((name, i) => {
-      const row = document.createElement("div");
-      row.className = `lang-hint-item${i === picker!.selected ? " sel" : ""}`;
-      row.textContent = name;
-      row.onmousedown = (e) => {
-        e.preventDefault();
-        pick(name);
-      };
-      list.appendChild(row);
+      list.appendChild(createLanguageRow(name, i === picker!.selected, pick));
     });
     if (picker.items.length === 0) {
       list.textContent = "无匹配语言";
