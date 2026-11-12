@@ -1,19 +1,23 @@
 use tauri::{
-    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
     Emitter, Manager, Runtime,
 };
 
-struct SourceModeMenu<R: Runtime>(CheckMenuItem<R>);
+struct ViewMenuChecks<R: Runtime>(Vec<CheckMenuItem<R>>);
 
 #[tauri::command]
-pub fn set_source_mode_checked<R: Runtime>(
+pub fn set_view_menu_checked<R: Runtime>(
     app: tauri::AppHandle<R>,
-    checked: bool,
+    checked: std::collections::HashMap<String, bool>,
 ) -> Result<(), String> {
-    app.state::<SourceModeMenu<R>>()
-        .0
-        .set_checked(checked)
-        .map_err(|e| e.to_string())
+    let items = app.state::<ViewMenuChecks<R>>();
+    for item in &items.0 {
+        let value = checked
+            .get(item.id().as_ref())
+            .ok_or_else(|| format!("缺少菜单状态：{}", item.id().as_ref()))?;
+        item.set_checked(*value).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 fn item<R: Runtime>(
@@ -23,6 +27,31 @@ fn item<R: Runtime>(
     accel: Option<&str>,
 ) -> tauri::Result<MenuItem<R>> {
     MenuItem::with_id(app, id, label, true, accel)
+}
+
+pub fn handle_menu_event<R: Runtime>(app: &tauri::AppHandle<R>, event: MenuEvent) {
+    if event.id().as_ref() == "fullscreen" {
+        if let Some(window) = app.get_webview_window("main") {
+            if let Err(err) = window
+                .is_fullscreen()
+                .and_then(|value| window.set_fullscreen(!value))
+            {
+                eprintln!("切换全屏失败：{err}");
+            }
+        }
+        return;
+    }
+    // 原生勾选项会自行反转；重复点击当前主题仍应保持选中。
+    if event.id().as_ref().starts_with("theme:") {
+        for item in &app.state::<ViewMenuChecks<R>>().0 {
+            if item.id().as_ref().starts_with("theme:") {
+                if let Err(err) = item.set_checked(item.id() == event.id()) {
+                    eprintln!("主题菜单状态同步失败：{err}");
+                }
+            }
+        }
+    }
+    let _ = app.emit("noteon://menu", event.id().as_ref().to_string());
 }
 
 /// 构建原生菜单（对齐 Typora 菜单结构），动作统一以 `noteon://menu` 事件转发前端执行。
@@ -110,38 +139,52 @@ pub fn build<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 
     // ── 视图 ──
     let view_menu = Submenu::with_id(app, "view", "视图", true)?;
-    view_menu.append(&item(
-        app,
-        "toggle-sidebar",
-        "切换侧栏",
-        Some("CmdOrCtrl+Shift+L"),
-    )?)?;
-    view_menu.append(&item(
-        app,
-        "search",
-        "搜索",
-        Some("CmdOrCtrl+Shift+F"),
-    )?)?;
-    let source_mode = CheckMenuItem::with_id(
-        app,
-        "source-mode",
-        "源码模式",
-        true,
-        false,
-        Some("CmdOrCtrl+/"),
-    )?;
-    view_menu.append(&source_mode)?;
-    app.manage(SourceModeMenu(source_mode));
-    view_menu.append(&PredefinedMenuItem::separator(app)?)?;
-    view_menu.append(&item(app, "focus-mode", "专注模式", Some("F8"))?)?;
-    view_menu.append(&item(app, "typewriter-mode", "打字机模式", Some("F9"))?)?;
+    let mut checks = Vec::new();
+    for (id, label, accel) in [
+        ("toggle-sidebar", "切换侧栏", "CmdOrCtrl+Shift+L"),
+        ("search", "搜索", "CmdOrCtrl+Shift+F"),
+        ("source-mode", "源码模式", "CmdOrCtrl+/"),
+        ("focus-mode", "专注模式", "F8"),
+        ("typewriter-mode", "打字机模式", "F9"),
+    ] {
+        if id == "focus-mode" {
+            view_menu.append(&PredefinedMenuItem::separator(app)?)?;
+        }
+        let check = CheckMenuItem::with_id(app, id, label, true, false, Some(accel))?;
+        view_menu.append(&check)?;
+        checks.push(check);
+    }
     view_menu.append(&PredefinedMenuItem::separator(app)?)?;
     let theme_menu = Submenu::with_id(app, "theme", "主题", true)?;
-    theme_menu.append(&item(app, "theme:github", "Github（亮色）", None)?)?;
-    theme_menu.append(&item(app, "theme:night", "Night（暗色）", None)?)?;
+    for (id, label) in [
+        ("theme:github", "Github（亮色）"),
+        ("theme:night", "Night（暗色）"),
+    ] {
+        let check =
+            CheckMenuItem::with_id(app, id, label, true, id == "theme:github", None::<&str>)?;
+        theme_menu.append(&check)?;
+        checks.push(check);
+    }
+    app.manage(ViewMenuChecks(checks));
     view_menu.append(&theme_menu)?;
     view_menu.append(&PredefinedMenuItem::separator(app)?)?;
-    view_menu.append(&PredefinedMenuItem::fullscreen(app, Some("进入全屏"))?)?;
+    let fullscreen =
+        CheckMenuItem::with_id(app, "fullscreen", "全屏", true, false, Some("Ctrl+Super+F"))?;
+    view_menu.append(&fullscreen)?;
+    if let Some(window) = app.get_webview_window("main") {
+        fullscreen.set_checked(window.is_fullscreen()?)?;
+        let current_window = window.clone();
+        window.on_window_event(move |event| {
+            if matches!(event, tauri::WindowEvent::Resized(_)) {
+                if let Err(err) = current_window
+                    .is_fullscreen()
+                    .and_then(|value| fullscreen.set_checked(value))
+                {
+                    eprintln!("全屏菜单状态同步失败：{err}");
+                }
+            }
+        });
+    }
 
     let menu = Menu::with_items(
         app,
@@ -150,9 +193,7 @@ pub fn build<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     app.set_menu(menu)?;
 
     // 菜单动作统一转发给前端执行
-    app.on_menu_event(|app, event| {
-        let _ = app.emit("noteon://menu", event.id().as_ref().to_string());
-    });
+    app.on_menu_event(handle_menu_event);
 
     Ok(())
 }

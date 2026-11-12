@@ -31,7 +31,7 @@ import {
   invoke,
   pandocExport,
   readTextFile,
-  setSourceModeChecked,
+  setViewMenuChecked,
   takePendingOpen,
   walkMarkdownFiles,
   watchFile,
@@ -104,10 +104,21 @@ function App() {
 
   useEffect(() => {
     sourceModeRef.current = sourceMode;
-    void setSourceModeChecked(sourceMode).catch((err) => {
-      console.error("源码模式菜单状态同步失败", err);
-    });
   }, [sourceMode]);
+
+  useEffect(() => {
+    void setViewMenuChecked({
+      "toggle-sidebar": sidebar !== null,
+      search: sidebar === "search",
+      "source-mode": sourceMode,
+      "focus-mode": focusMode,
+      "typewriter-mode": typewriterMode,
+      "theme:github": theme === "github",
+      "theme:night": theme === "night",
+    }).catch((err) => {
+      console.error("视图菜单状态同步失败", err);
+    });
+  }, [sidebar, sourceMode, focusMode, typewriterMode, theme]);
 
   // 设置：持久化 + 应用字体变量（主题字号以 html 根字号为 rem 基准；CM 侧走变量）
   useEffect(() => {

@@ -2,8 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 
 export { invoke };
 
-export function setSourceModeChecked(checked: boolean): Promise<void> {
-  return invoke<void>("set_source_mode_checked", { checked });
+export function setViewMenuChecked(checked: Record<string, boolean>): Promise<void> {
+  return invoke<void>("set_view_menu_checked", { checked });
 }
 
 export interface DirEntry {
