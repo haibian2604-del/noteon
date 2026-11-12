@@ -20,6 +20,25 @@ async function makeEditor(markdown: string, readOnly = false) {
 }
 
 describe("code block deletion", () => {
+  it("keeps language label DOM stable when inserting newlines", async () => {
+    const { editor, view, root } = await makeEditor("```python\nprint(1)\n```");
+    try {
+      const pre = root.querySelector("pre")!;
+      const label = root.querySelector(".code-lang-label")!;
+      const text = label.firstChild;
+      const observer = new MutationObserver(() => {});
+      observer.observe(pre, { attributes: true, attributeFilter: ["data-language"] });
+      view.dom.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      expect(view.state.doc.firstChild?.textContent).toBe("\nprint(1)");
+      expect(label.firstChild).toBe(text);
+      expect(observer.takeRecords()).toHaveLength(0);
+      observer.disconnect();
+      view.dispatch(view.state.tr.setNodeMarkup(0, undefined, { language: "javascript" }));
+      expect(label.textContent).toBe("javascript");
+      expect(pre.dataset.language).toBe("javascript");
+    } finally { await editor.destroy(); root.remove(); }
+  });
+
   it("exits an empty language-completed code block on Backspace, with undo support", async () => {
     await import("lowlight");
     const { editor, view, root } = await makeEditor("");

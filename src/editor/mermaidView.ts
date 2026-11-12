@@ -170,8 +170,10 @@ class LabeledCodeBlockView implements NodeView {
 
   update(node: PMNode): boolean {
     if (node.type.name !== "code_block") return false;
-    this.dom.dataset.language = String(node.attrs.language ?? "");
-    this.label.textContent = String(node.attrs.language ?? "");
+    const language = String(node.attrs.language ?? "");
+    // 语言不变时保留标签 DOM，避免每次输入、换行都产生额外变更。
+    if (this.dom.dataset.language !== language) this.dom.dataset.language = language;
+    if (this.label.textContent !== language) this.label.textContent = language;
     return true;
   }
 
