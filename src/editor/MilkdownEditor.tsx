@@ -16,6 +16,7 @@ import { alertPlugin } from "./alerts";
 import { findPlugin } from "./findReplace";
 import { applyRawBracketText } from "./serialize";
 import { createReadOnlyPlugin } from "./readOnly";
+import { createCodeBlockCaretPlugin } from "./codeBlockCaret";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github.css";
 
@@ -152,6 +153,7 @@ export default function MilkdownEditor({
         .use(history)
         .use(listener)
         .use($prose(() => createReadOnlyPlugin(() => readOnlyRef.current)))
+        .use($prose(() => createCodeBlockCaretPlugin()))
         .use(mathMod.math)
         .use(upload)
         .use(mermaidView)
