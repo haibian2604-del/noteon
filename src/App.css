@@ -185,6 +185,45 @@ body {
   margin: 0 auto;
 }
 
+/* Milkdown 单元格包含段落，去掉首尾正文间距以免撑高行。 */
+div.ProseMirror table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+div.ProseMirror th,
+div.ProseMirror td {
+  min-width: 6em;
+  padding: 8px 12px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+div.ProseMirror th {
+  text-align: left;
+  background: var(--side-bar-bg-color, #fafafa);
+}
+div.ProseMirror th > :first-child,
+div.ProseMirror td > :first-child {
+  margin-top: 0;
+}
+div.ProseMirror th > :last-child,
+div.ProseMirror td > :last-child {
+  margin-bottom: 0;
+}
+
+@media print {
+  div.ProseMirror table {
+    display: table;
+    overflow: visible;
+  }
+  div.ProseMirror th,
+  div.ProseMirror td {
+    min-width: 0;
+  }
+}
+
 /* 大纲跳转时标题不被顶栏遮住 */
 .ProseMirror h1,
 .ProseMirror h2,
