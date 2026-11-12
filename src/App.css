@@ -31,22 +31,6 @@ body {
   user-select: none;
 }
 
-.tb-btn {
-  border: none;
-  background: transparent;
-  color: var(--control-text-color, #777);
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0;
-}
-.tb-btn:hover {
-  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.06));
-}
-
 .doc-name {
   font-size: 13px;
   color: var(--control-text-color, #999);
@@ -170,6 +154,15 @@ body {
 
 .milkdown-host {
   padding: 0 16px 30vh;
+}
+
+.milkdown-host,
+.source-editor {
+  zoom: var(--content-zoom, 1);
+}
+
+.editor-scroll > .source-editor {
+  height: 100%;
 }
 
 /* ProseMirror 默认聚焦描边去掉；宽度/居中由主题 CSS（.ProseMirror 规则）负责 */
@@ -434,6 +427,7 @@ body {
     display: block;
   }
   .editor-scroll {
+    --content-zoom: 1 !important;
     overflow: visible !important;
   }
   .milkdown-host {
@@ -514,10 +508,6 @@ body {
 }
 
 /* ── M5：源码模式 ── */
-.tb-btn.active {
-  background: var(--item-hover-bg-color, rgba(0, 0, 0, 0.08));
-  color: var(--control-text-hover-color, #333);
-}
 :root {
   --noteon-font-family: inherit;
   --noteon-font-size: 16px;

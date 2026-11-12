@@ -18,6 +18,7 @@ import FormatToolbar from "./ui/FormatToolbar";
 import EditorContextMenu from "./ui/EditorContextMenu";
 import FindReplace from "./ui/FindReplace";
 import QuickOpen from "./ui/QuickOpen";
+import { attachContentZoom } from "./ui/contentZoom";
 import SettingsModal, {
   FONT_FAMILY_CSS,
   loadSettings,
@@ -30,6 +31,7 @@ import {
   invoke,
   pandocExport,
   readTextFile,
+  setSourceModeChecked,
   takePendingOpen,
   walkMarkdownFiles,
   watchFile,
@@ -94,9 +96,17 @@ function App() {
   const lastPanelRef = useRef<SidebarTab>("files");
   const sourceModeRef = useRef(false);
   const sourceHandleRef = useRef<SourceEditorHandle | null>(null);
+  const contentRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (contentRef.current) return attachContentZoom(contentRef.current);
+  }, []);
 
   useEffect(() => {
     sourceModeRef.current = sourceMode;
+    void setSourceModeChecked(sourceMode).catch((err) => {
+      console.error("源码模式菜单状态同步失败", err);
+    });
   }, [sourceMode]);
 
   // 设置：持久化 + 应用字体变量（主题字号以 html 根字号为 rem 基准；CM 侧走变量）
@@ -575,20 +585,6 @@ function App() {
   return (
     <div className="app">
       <header className="titlebar" data-tauri-drag-region>
-        <button
-          className="tb-btn"
-          title="切换侧栏 (⌘⇧L)"
-          onClick={toggleSidebar}
-        >
-          ☰
-        </button>
-        <button
-          className={`tb-btn${sourceMode ? " active" : ""}`}
-          title="源码模式 (⌘/)"
-          onClick={toggleSourceMode}
-        >
-          {"</>"}
-        </button>
         <span className="doc-name">
           {doc.name}
           {dirty ? " — 已编辑" : ""}
@@ -643,6 +639,7 @@ function App() {
           }}
         />
         <main
+          ref={contentRef}
           className={`editor-scroll${focusMode ? " focus-mode" : ""}`}
         >
           {sourceMode ? (

@@ -1,7 +1,20 @@
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    Emitter, Runtime,
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
+    Emitter, Manager, Runtime,
 };
+
+struct SourceModeMenu<R: Runtime>(CheckMenuItem<R>);
+
+#[tauri::command]
+pub fn set_source_mode_checked<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    checked: bool,
+) -> Result<(), String> {
+    app.state::<SourceModeMenu<R>>()
+        .0
+        .set_checked(checked)
+        .map_err(|e| e.to_string())
+}
 
 fn item<R: Runtime>(
     app: &tauri::AppHandle<R>,
@@ -109,12 +122,16 @@ pub fn build<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         "搜索",
         Some("CmdOrCtrl+Shift+F"),
     )?)?;
-    view_menu.append(&item(
+    let source_mode = CheckMenuItem::with_id(
         app,
         "source-mode",
         "源码模式",
+        true,
+        false,
         Some("CmdOrCtrl+/"),
-    )?)?;
+    )?;
+    view_menu.append(&source_mode)?;
+    app.manage(SourceModeMenu(source_mode));
     view_menu.append(&PredefinedMenuItem::separator(app)?)?;
     view_menu.append(&item(app, "focus-mode", "专注模式", Some("F8"))?)?;
     view_menu.append(&item(app, "typewriter-mode", "打字机模式", Some("F9"))?)?;

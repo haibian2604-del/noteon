@@ -2,6 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 
 export { invoke };
 
+export function setSourceModeChecked(checked: boolean): Promise<void> {
+  return invoke<void>("set_source_mode_checked", { checked });
+}
+
 export interface DirEntry {
   name: string;
   path: string;

@@ -29,6 +29,7 @@ pub fn run() {
             commands::watch::watch_file,
             commands::updater::check_update,
             commands::updater::install_update,
+            menu::set_source_mode_checked,
             take_pending_open,
         ])
         .setup(|app| {
