@@ -29,42 +29,62 @@ export interface CommandDef {
 
 type CommandKey = Parameters<typeof callCommand>[0];
 
-/** 无参命令与带参命令的 callCommand 重载不同，分开调 */
-function cmd(label: string, key: CommandKey, payload?: unknown): CommandDef {
+/** 命令键在编辑器初始化时才赋值，必须在执行时读取。 */
+function cmd(label: string, command: { key: CommandKey }, payload?: unknown): CommandDef {
   return {
     label,
     run: (ed) =>
       ed.action(
         payload === undefined
-          ? callCommand(key)
-          : callCommand(key, payload as never),
+          ? callCommand(command.key)
+          : callCommand(command.key, payload as never),
       ),
   };
 }
 
 /** 共享格式化命令表：原生菜单 / 工具栏 / 右键菜单统一从这里取 */
 export const COMMANDS: Record<string, CommandDef> = {
-  h1: cmd("一级标题", wrapInHeadingCommand.key, 1),
-  h2: cmd("二级标题", wrapInHeadingCommand.key, 2),
-  h3: cmd("三级标题", wrapInHeadingCommand.key, 3),
-  h4: cmd("四级标题", wrapInHeadingCommand.key, 4),
-  h5: cmd("五级标题", wrapInHeadingCommand.key, 5),
-  h6: cmd("六级标题", wrapInHeadingCommand.key, 6),
-  "bullet-list": cmd("无序列表", wrapInBulletListCommand.key),
-  "ordered-list": cmd("有序列表", wrapInOrderedListCommand.key),
-  quote: cmd("引用", wrapInBlockquoteCommand.key),
-  "code-block": cmd("代码块", createCodeBlockCommand.key),
-  table: cmd("表格（3×3）", insertTableCommand.key, { row: 3, col: 3 }),
-  "table-row-before": cmd("上方插入行", addRowBeforeCommand.key),
-  "table-row-after": cmd("下方插入行", addRowAfterCommand.key),
-  "table-col-before": cmd("左侧插入列", addColBeforeCommand.key),
-  "table-col-after": cmd("右侧插入列", addColAfterCommand.key),
-  hr: cmd("分割线", insertHrCommand.key),
-  bold: cmd("加粗", toggleStrongCommand.key),
-  italic: cmd("斜体", toggleEmphasisCommand.key),
-  strike: cmd("删除线", toggleStrikethroughCommand.key),
-  "inline-code": cmd("行内代码", toggleInlineCodeCommand.key),
-  link: cmd("链接", toggleLinkCommand.key),
+  h1: cmd("一级标题", wrapInHeadingCommand, 1),
+  h2: cmd("二级标题", wrapInHeadingCommand, 2),
+  h3: cmd("三级标题", wrapInHeadingCommand, 3),
+  h4: cmd("四级标题", wrapInHeadingCommand, 4),
+  h5: cmd("五级标题", wrapInHeadingCommand, 5),
+  h6: cmd("六级标题", wrapInHeadingCommand, 6),
+  "bullet-list": cmd("无序列表", wrapInBulletListCommand),
+  "ordered-list": cmd("有序列表", wrapInOrderedListCommand),
+  quote: cmd("引用", wrapInBlockquoteCommand),
+  "code-block": cmd("代码块", createCodeBlockCommand),
+  table: cmd("表格（3×3）", insertTableCommand, { row: 3, col: 3 }),
+  "table-row-before": cmd("上方插入行", addRowBeforeCommand),
+  "table-row-after": cmd("下方插入行", addRowAfterCommand),
+  "table-col-before": cmd("左侧插入列", addColBeforeCommand),
+  "table-col-after": cmd("右侧插入列", addColAfterCommand),
+  hr: cmd("分割线", insertHrCommand),
+  bold: cmd("加粗", toggleStrongCommand),
+  italic: cmd("斜体", toggleEmphasisCommand),
+  strike: cmd("删除线", toggleStrikethroughCommand),
+  "inline-code": cmd("行内代码", toggleInlineCodeCommand),
+  link: {
+    label: "链接",
+    run: (ed) => {
+      const view = ed.action((ctx) => ctx.get(editorViewCtx));
+      const dialog = document.createElement("dialog");
+      dialog.className = "link-dialog";
+      dialog.setAttribute("aria-label", "插入链接");
+      dialog.innerHTML = '<form method="dialog"><label>链接地址<input name="href" type="url" required placeholder="https://example.com" class="settings-input" /></label><div><button value="cancel" formnovalidate>取消</button><button value="confirm">确定</button></div></form>';
+      dialog.addEventListener("close", () => {
+        const href = dialog.querySelector("input")!.value.trim();
+        dialog.remove();
+        if (view.isDestroyed) return;
+        if (dialog.returnValue === "confirm" && href && view.editable) {
+          ed.action(callCommand(toggleLinkCommand.key, { href }));
+        }
+        view.focus();
+      }, { once: true });
+      document.body.append(dialog);
+      dialog.showModal();
+    },
+  },
 };
 
 // 警告框命令（GitHub Alerts，选区一键转换）

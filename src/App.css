@@ -1002,3 +1002,16 @@ div.ProseMirror .find-current {
   outline: 1px solid #0969da;
   outline-offset: -1px;
 }
+
+.link-dialog {
+  width: min(360px, calc(100vw - 48px));
+  padding: 20px;
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 8px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+.link-dialog label { display: grid; gap: 8px; }
+.link-dialog input { box-sizing: border-box; width: 100%; }
+.link-dialog form > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.link-dialog::backdrop { background: rgba(0, 0, 0, 0.25); }
