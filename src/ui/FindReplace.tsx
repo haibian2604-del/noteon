@@ -13,10 +13,12 @@ export default function FindReplace({
   open,
   onClose,
   getView,
+  readOnly = false,
 }: {
   open: boolean;
   onClose: () => void;
   getView: () => EditorView | null;
+  readOnly?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [replacement, setReplacement] = useState("");
@@ -62,14 +64,14 @@ export default function FindReplace({
   const replaceCurrent = () => {
     const view = getView();
     const s = view && findKey.getState(view.state);
-    if (!view || !s || s.matches.length === 0) return;
+    if (!view || !view.editable || !s || s.matches.length === 0) return;
     const m = s.matches[Math.min(s.active, s.matches.length - 1)];
     view.dispatch(view.state.tr.insertText(replacement, m.from, m.to));
   };
 
   const replaceAll = () => {
     const view = getView();
-    if (!view || query === "") return;
+    if (!view || !view.editable || query === "") return;
     const n = replaceAllMatches(view, query, replacement, opts);
     setNotice(n > 0 ? `已替换 ${n} 处` : "无匹配");
     window.setTimeout(() => setNotice(null), 2000);
@@ -119,6 +121,7 @@ export default function FindReplace({
       </button>
       <input
         className="find-input find-replace"
+        disabled={readOnly}
         placeholder="替换为…"
         value={replacement}
         onChange={(e) => setReplacement(e.target.value)}
@@ -126,10 +129,10 @@ export default function FindReplace({
           if (e.key === "Escape") onClose();
         }}
       />
-      <button className="find-btn" onClick={replaceCurrent}>
+      <button className="find-btn" disabled={readOnly} onClick={replaceCurrent}>
         替换
       </button>
-      <button className="find-btn" onClick={replaceAll}>
+      <button className="find-btn" disabled={readOnly} onClick={replaceAll}>
         全部替换
       </button>
       {notice && <span className="find-notice">{notice}</span>}

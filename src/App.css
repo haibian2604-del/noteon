@@ -35,6 +35,20 @@ body {
   font-size: 13px;
   color: var(--control-text-color, #999);
   margin-left: 4px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-badge {
+  flex-shrink: 0;
+  color: var(--primary-color, #0366d6);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .body {
@@ -179,15 +193,6 @@ body {
 .ProseMirror h5,
 .ProseMirror h6 {
   scroll-margin-top: 48px;
-}
-
-/* 专注模式：非活动段落淡化 */
-.editor-scroll.focus-mode .ProseMirror > * {
-  opacity: 0.25;
-  transition: opacity 0.15s ease;
-}
-.editor-scroll.focus-mode .ProseMirror > [data-active] {
-  opacity: 1;
 }
 
 /* ── mermaid 代码块节点视图 ── */

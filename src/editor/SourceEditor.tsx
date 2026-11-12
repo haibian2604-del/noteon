@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { EditorView, basicSetup } from "codemirror";
 import { keymap } from "@codemirror/view";
-import { EditorState, Prec } from "@codemirror/state";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -14,6 +14,7 @@ export interface SourceEditorHandle {
 interface Props {
   value: string;
   dark: boolean;
+  readOnly?: boolean;
   onChange: (md: string) => void;
   onHandle?: (h: SourceEditorHandle | null) => void;
   /** ⌘/：CM 聚焦时原生菜单加速键不触发，需在编辑器内拦截转交父组件 */
@@ -23,12 +24,14 @@ interface Props {
 export default function SourceEditor({
   value,
   dark,
+  readOnly = false,
   onChange,
   onHandle,
   onToggle,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const readOnlyCompartment = useRef(new Compartment()).current;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onToggleRef = useRef(onToggle);
@@ -40,6 +43,10 @@ export default function SourceEditor({
       state: EditorState.create({
         doc: value,
         extensions: [
+          readOnlyCompartment.of([
+            EditorState.readOnly.of(readOnly),
+            EditorView.editable.of(!readOnly),
+          ]),
           Prec.highest(
             keymap.of([
               {
@@ -94,6 +101,15 @@ export default function SourceEditor({
     // 仅挂载时创建一次；外部 value 变化走下面的同步 effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: readOnlyCompartment.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly),
+      ]),
+    });
+  }, [readOnly, readOnlyCompartment]);
 
   // 打开新文档等外部替换内容时同步进 CM（避免与用户输入回环）
   useEffect(() => {

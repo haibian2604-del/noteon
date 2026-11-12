@@ -592,6 +592,11 @@ function App() {
           {dirty ? " — 已编辑" : ""}
           {sourceMode ? " · 源码" : ""}
         </span>
+        {focusMode && (
+          <span className="mode-badge" role="status" title="退出专注模式（F8）后可编辑">
+            专注模式 · 只读
+          </span>
+        )}
       </header>
       <div className="body">
         {sidebar && (
@@ -642,13 +647,14 @@ function App() {
         />
         <main
           ref={contentRef}
-          className={`editor-scroll${focusMode ? " focus-mode" : ""}`}
+          className="editor-scroll"
         >
           {sourceMode ? (
             <SourceEditor
               key={theme}
               value={content}
               dark={theme === "night"}
+              readOnly={focusMode}
               onChange={onDocChanged}
               onToggle={toggleSourceMode}
               onHandle={(h) => {
@@ -659,7 +665,7 @@ function App() {
             <MilkdownEditor
               key={editorKey}
               defaultValue={content}
-              focusMode={focusMode}
+              readOnly={focusMode}
               typewriterMode={typewriterMode}
               getDocPath={() => doc.path}
               onChange={onDocChanged}
@@ -692,18 +698,19 @@ function App() {
           {!sourceMode && (
             <FormatToolbar
               onCommand={runEditorCommand}
-              enabled={!settingsOpen && !quickOpen}
+              enabled={!settingsOpen && !quickOpen && !focusMode}
             />
           )}
           {!sourceMode && (
             <EditorContextMenu
               onCommand={runEditorCommand}
-              enabled={!settingsOpen && !quickOpen}
+              enabled={!settingsOpen && !quickOpen && !focusMode}
             />
           )}
           {!sourceMode && (
             <FindReplace
               open={findOpen}
+              readOnly={focusMode}
               onClose={() => setFindOpen(false)}
               getView={() =>
                 editorRef.current

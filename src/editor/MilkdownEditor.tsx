@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Editor, defaultValueCtx, rootCtx } from "@milkdown/kit/core";
+import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from "@milkdown/kit/core";
+import type { EditorView } from "@milkdown/kit/prose/view";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
 import { history } from "@milkdown/kit/plugin/history";
@@ -14,6 +15,7 @@ import { createLangHintPlugin } from "./langHint";
 import { alertPlugin } from "./alerts";
 import { findPlugin } from "./findReplace";
 import { applyRawBracketText } from "./serialize";
+import { createReadOnlyPlugin } from "./readOnly";
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github.css";
 
@@ -21,19 +23,10 @@ interface Props {
   defaultValue: string;
   onChange: (markdown: string) => void;
   onReady?: (editor: Editor) => void;
-  focusMode?: boolean;
+  readOnly?: boolean;
   typewriterMode?: boolean;
   /** 当前文档绝对路径；null 表示未保存的新文档（图片走 data URL） */
   getDocPath: () => string | null;
-}
-
-/** 选区所在的最顶层块（专注模式用它圈定活动段落）。 */
-function topLevelChild(pm: Element): Element | null {
-  const sel = window.getSelection();
-  let n = sel?.focusNode ?? null;
-  if (!n || !pm.contains(n)) return null;
-  while (n && n.parentElement !== pm) n = n.parentElement;
-  return n instanceof Element ? n : null;
 }
 
 /** 读图为 data URL；stripPrefix=true 时只返回纯 base64（saveImage 入参约定） */
@@ -54,7 +47,7 @@ export default function MilkdownEditor({
   defaultValue,
   onChange,
   onReady,
-  focusMode = false,
+  readOnly = false,
   typewriterMode = false,
   getDocPath,
 }: Props) {
@@ -65,8 +58,16 @@ export default function MilkdownEditor({
   onReadyRef.current = onReady ?? null;
   const getDocPathRef = useRef(getDocPath);
   getDocPathRef.current = getDocPath;
-  const modesRef = useRef({ focusMode, typewriterMode });
-  modesRef.current = { focusMode, typewriterMode };
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+  const typewriterRef = useRef(typewriterMode);
+  typewriterRef.current = typewriterMode;
+  const viewRef = useRef<EditorView | null>(null);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view) view.updateState(view.state);
+  }, [readOnly]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -105,6 +106,7 @@ export default function MilkdownEditor({
 
       // 图片粘贴/拖拽：保存到文档同目录 assets/，未保存文档走 data URL
       const uploader: Uploader = async (files, schema) => {
+        if (readOnlyRef.current) return [];
         const nodes: PMNode[] = [];
         for (const file of Array.from(files)) {
           if (!file.type.startsWith("image/")) continue;
@@ -145,6 +147,7 @@ export default function MilkdownEditor({
         .use(gfm)
         .use(history)
         .use(listener)
+        .use($prose(() => createReadOnlyPlugin(() => readOnlyRef.current)))
         .use(mathMod.math)
         .use(upload)
         .use(mermaidView)
@@ -164,33 +167,29 @@ export default function MilkdownEditor({
         console.error(err);
         return;
       }
+      if (disposed) {
+        await instance.destroy();
+        return;
+      }
+      viewRef.current = instance.action((ctx) => ctx.get(editorViewCtx));
       onReadyRef.current?.(instance);
     })();
 
     return () => {
       disposed = true;
+      viewRef.current = null;
       if (instance) void instance.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 专注模式 + 打字机模式：监听 selectionchange（输入/移动光标都会触发）
+  // 打字机模式：监听 selectionchange（输入/移动光标都会触发）
   useEffect(() => {
     const handler = () => {
       const root = rootRef.current;
       const pm = root?.querySelector(".ProseMirror");
       if (!root || !pm) return;
-      const { focusMode: focus, typewriterMode: typewriter } = modesRef.current;
-      if (!focus && !typewriter) return;
-
-      const child = topLevelChild(pm);
-      if (focus) {
-        pm.querySelectorAll(":scope > [data-active]").forEach((el) => {
-          el.removeAttribute("data-active");
-        });
-        child?.setAttribute("data-active", "");
-      }
-      if (typewriter) {
+      if (typewriterRef.current) {
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0 || !pm.contains(sel.anchorNode)) return;
         const rect = sel.getRangeAt(0).getBoundingClientRect();

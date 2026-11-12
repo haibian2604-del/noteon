@@ -1,4 +1,4 @@
-import { Editor } from "@milkdown/kit/core";
+import { Editor, editorViewCtx } from "@milkdown/kit/core";
 import { callCommand } from "@milkdown/kit/utils";
 import {
   createCodeBlockCommand,
@@ -79,6 +79,7 @@ for (const k of ALERT_KINDS) {
 export function runEditorCommandKey(ed: Editor, key: string): boolean {
   const def = COMMANDS[key];
   if (!def) return false;
+  if (!ed.action((ctx) => ctx.get(editorViewCtx)).editable) return false;
   def.run(ed);
   return true;
 }

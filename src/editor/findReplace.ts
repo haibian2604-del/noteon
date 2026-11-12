@@ -101,6 +101,7 @@ export function replaceAllMatches(
   replacement: string,
   opts: FindOptions,
 ): number {
+  if (!view.editable) return 0;
   const matches = collectMatches(view.state.doc, query, opts, SCAN_CAP);
   if (matches.length === 0) return 0;
   const tr = view.state.tr;
