@@ -69,7 +69,7 @@ export default function EditorContextMenu({
     if (key === "copy-code") {
       const el = document.elementFromPoint(menu.x, menu.y);
       const pre = el instanceof Element ? el.closest("pre") : null;
-      void navigator.clipboard.writeText(pre?.textContent ?? "");
+      void navigator.clipboard.writeText(pre?.querySelector("code")?.textContent ?? "");
       return;
     }
     if (COMMANDS[key]) onCommand(key);

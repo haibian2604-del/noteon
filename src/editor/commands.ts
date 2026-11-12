@@ -133,7 +133,7 @@ export function buildEditorMenu(ctx: {
     });
   }
   if (ctx.inCodeBlock) {
-    // copy-code 由组件特判（直取 pre 文本写剪贴板），不经 COMMANDS
+    // copy-code 由组件特判（直取 code 正文写剪贴板），不经 COMMANDS
     groups.push({
       title: "代码",
       items: [{ key: "copy-code", label: "复制代码块内容" }],

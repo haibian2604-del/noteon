@@ -20,6 +20,38 @@ async function makeEditor(markdown: string, readOnly = false) {
 }
 
 describe("code block deletion", () => {
+  it("copies only current code and reports clipboard success or failure", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    const { editor, view, root } = await makeEditor("```go\npackage main\n```");
+    try {
+      const button = root.querySelector<HTMLButtonElement>(".code-copy-button")!;
+      expect(button.textContent).toBe("Copy");
+      const mouse = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+      const before = view.state.selection;
+      button.dispatchEvent(mouse);
+      expect(mouse.defaultPrevented).toBe(true);
+      expect(view.state.selection.eq(before)).toBe(true);
+      button.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+      expect(view.state.doc.firstChild?.textContent).toBe("package main");
+      button.click();
+      await vi.waitFor(() => expect(button.textContent).toBe("Copied"));
+      expect(writeText).toHaveBeenLastCalledWith("package main");
+      view.dispatch(view.state.tr.insertText("\n\t// latest", 13));
+      button.click();
+      await vi.waitFor(() => expect(writeText).toHaveBeenLastCalledWith("package main\n\t// latest"));
+      writeText.mockRejectedValueOnce(new Error("Clipboard denied"));
+      button.click();
+      await vi.waitFor(() => expect(button.textContent).toBe("Failed"));
+      expect(view.state.doc.firstChild?.textContent).toBe("package main\n\t// latest");
+    } finally {
+      await editor.destroy(); root.remove();
+      if (descriptor) Object.defineProperty(navigator, "clipboard", descriptor);
+      else Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+
   it("shows and updates the code block language icon without touching code", async () => {
     const { editor, view, root } = await makeEditor("```go\npackage main\n```");
     try {

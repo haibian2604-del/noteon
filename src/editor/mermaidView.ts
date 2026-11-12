@@ -137,8 +137,13 @@ class LabeledCodeBlockView implements NodeView {
   dom: HTMLElement;
   contentDOM: HTMLElement;
   private label: HTMLElement;
+  private node: PMNode;
+  private copyButton: HTMLButtonElement;
+  private copyTimer: number | undefined;
+  private destroyed = false;
 
   constructor(node: PMNode, view: EditorView, getPos: () => number | undefined) {
+    this.node = node;
     this.dom = document.createElement("pre");
     this.dom.className = "code-block";
     this.label = document.createElement("span");
@@ -162,13 +167,44 @@ class LabeledCodeBlockView implements NodeView {
         },
       );
     };
+    this.copyButton = document.createElement("button");
+    this.copyButton.type = "button";
+    this.copyButton.className = "code-copy-button";
+    this.copyButton.textContent = "Copy";
+    this.copyButton.title = "复制代码";
+    this.copyButton.setAttribute("contenteditable", "false");
+    this.copyButton.setAttribute("aria-live", "polite");
+    this.copyButton.onmousedown = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    this.copyButton.onclick = async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.clearTimeout(this.copyTimer);
+      let feedback: "Copied" | "Failed";
+      try {
+        await navigator.clipboard.writeText(this.node.textContent);
+        feedback = "Copied";
+      } catch {
+        feedback = "Failed";
+      }
+      if (this.destroyed) return;
+      this.copyButton.textContent = feedback;
+      this.copyButton.title = feedback === "Copied" ? "已复制代码" : "复制失败，点击重试";
+      this.copyTimer = window.setTimeout(() => {
+        this.copyButton.textContent = "Copy";
+        this.copyButton.title = "复制代码";
+      }, 1500);
+    };
     this.contentDOM = document.createElement("code");
-    this.dom.append(this.contentDOM, this.label);
+    this.dom.append(this.contentDOM, this.copyButton, this.label);
     this.update(node);
   }
 
   update(node: PMNode): boolean {
     if (node.type.name !== "code_block") return false;
+    this.node = node;
     const language = String(node.attrs.language ?? "");
     // 语言不变时保留标签 DOM，避免每次输入、换行都产生额外变更。
     if (this.dom.dataset.language !== language) this.dom.dataset.language = language;
@@ -180,12 +216,19 @@ class LabeledCodeBlockView implements NodeView {
     return true;
   }
 
-  // 只有标签是自管 DOM；contentDOM 内的变更必须交给 PM 处理
+  // 控件是自管 DOM；contentDOM 内的变更必须交给 PM 处理。
   ignoreMutation(m: { target: Node }): boolean {
     return m.target !== this.contentDOM && !this.contentDOM.contains(m.target);
   }
 
+  stopEvent(event: Event): boolean {
+    return event.target instanceof Node && this.copyButton.contains(event.target);
+  }
+
   destroy(): void {
+    this.destroyed = true;
+    window.clearTimeout(this.copyTimer);
+    this.copyButton.remove();
     this.label.remove();
   }
 }
