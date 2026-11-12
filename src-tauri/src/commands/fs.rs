@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -82,13 +81,12 @@ pub fn save_image(dir: String, name: String, data_base64: String) -> Result<Stri
     let assets = Path::new(&dir).join("assets");
     fs::create_dir_all(&assets).map_err(|e| e.to_string())?;
 
+    // 重名自动加序号（与 create_path 一致）
     let mut final_name = format!("{stem}.{ext}");
-    if assets.join(&final_name).exists() {
-        let ms = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0);
-        final_name = format!("{stem}-{ms}.{ext}");
+    let mut n = 1;
+    while assets.join(&final_name).exists() {
+        final_name = format!("{stem}-{n}.{ext}");
+        n += 1;
     }
 
     let bytes = base64::engine::general_purpose::STANDARD

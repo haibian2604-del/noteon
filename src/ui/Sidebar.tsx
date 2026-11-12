@@ -13,8 +13,6 @@ import {
   filterEntries,
   type FileFilter,
 } from "./treeFilter";
-import { moveCursor } from "./treeNav";
-
 function loadFileFilter(): FileFilter {
   try {
     const raw = localStorage.getItem("noteon.fileFilter");
@@ -384,11 +382,15 @@ export default function Sidebar({
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         const cur = rows.findIndex((r) => r.dataset.path === cursorPath);
-        const next = moveCursor(
-          cur < 0 ? null : cur,
-          rows.length,
-          e.key === "ArrowDown" ? "down" : "up",
-        );
+        // up 在顶部退出光标，down 在末尾停住
+        const next =
+          e.key === "ArrowDown"
+            ? cur < 0
+              ? 0
+              : Math.min(cur + 1, rows.length - 1)
+            : cur <= 0
+              ? null
+              : cur - 1;
         setCursorPath(next === null ? null : (rows[next].dataset.path ?? null));
         if (next !== null) rows[next]?.scrollIntoView({ block: "nearest" });
         return;
