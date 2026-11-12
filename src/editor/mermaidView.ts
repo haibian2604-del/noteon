@@ -142,6 +142,7 @@ class LabeledCodeBlockView implements NodeView {
     this.dom.className = "code-block";
     this.label = document.createElement("span");
     this.label.className = "code-lang-label";
+    this.label.setAttribute("contenteditable", "false");
     // 点击标签改语言：面板选中后 setNodeMarkup 更新 language 属性
     this.label.onmousedown = (e) => {
       e.preventDefault();
@@ -169,6 +170,7 @@ class LabeledCodeBlockView implements NodeView {
 
   update(node: PMNode): boolean {
     if (node.type.name !== "code_block") return false;
+    this.dom.dataset.language = String(node.attrs.language ?? "");
     this.label.textContent = String(node.attrs.language ?? "");
     return true;
   }

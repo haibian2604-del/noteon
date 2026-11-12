@@ -59,6 +59,9 @@ export default function SourceEditor({
             ]),
           ),
           basicSetup,
+          EditorView.contentAttributes.of({
+            autocapitalize: "off", autocorrect: "off", spellcheck: "false",
+          }),
           EditorView.lineWrapping,
           markdown({ codeLanguages: languages, base: markdownLanguage }),
           dark ? oneDark : [],

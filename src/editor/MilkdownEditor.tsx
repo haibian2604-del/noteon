@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from "@milkdown/kit/core";
+import { Editor, defaultValueCtx, editorViewCtx, editorViewOptionsCtx, rootCtx } from "@milkdown/kit/core";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { gfm } from "@milkdown/kit/preset/gfm";
@@ -137,6 +137,10 @@ export default function MilkdownEditor({
         .config((ctx) => {
           ctx.set(rootCtx, root);
           ctx.set(defaultValueCtx, defaultValue);
+          ctx.update(editorViewOptionsCtx, (prev) => ({
+            ...prev,
+            attributes: { autocapitalize: "off", autocorrect: "off", spellcheck: "false" },
+          }));
           ctx.get(listenerCtx).markdownUpdated((_, markdown, _prev) => {
             onChangeRef.current(markdown);
           });

@@ -1,5 +1,6 @@
 import { Plugin, PluginKey, TextSelection, type EditorState } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
+import { closeHistory } from "@milkdown/kit/prose/history";
 
 /** Typora 式语言提示：在段落里输入 ``` 前缀后弹出语言候选，↑↓ 选择、回车/点击确认 */
 
@@ -88,6 +89,14 @@ export function createLangHintPlugin(): Plugin<HintState | undefined> {
   },
   props: {
     handleKeyDown(view, event) {
+      if (!view.editable || view.composing || event.isComposing) return false;
+      const { $from, empty } = view.state.selection;
+      if (event.key === "Backspace" && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey &&
+          empty && $from.parent.type.name === "code_block" && $from.parent.content.size === 0) {
+        const tr = view.state.tr.setBlockType($from.before(), $from.after(), view.state.schema.nodes.paragraph);
+        view.dispatch(closeHistory(tr).scrollIntoView());
+        return true;
+      }
       const hint = langHintKey.getState(view.state);
       if (!hint) return false;
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -206,6 +215,9 @@ export function openLangPicker(
   root.className = "lang-hint lang-picker";
   const input = document.createElement("input");
   input.className = "lang-picker-input";
+  input.autocapitalize = "off";
+  input.setAttribute("autocorrect", "off");
+  input.spellcheck = false;
   input.value = current;
   const list = document.createElement("div");
   list.className = "lang-picker-list";

@@ -691,10 +691,12 @@ div.ProseMirror pre.code-block {
   background-color: #f8f8f8;
   border: 1px solid #e7eaed;
   border-radius: 6px;
-  padding: 10px 14px;
+  padding: 10px 14px 24px;
   margin: 15px 0;
 }
 div.ProseMirror pre.code-block code {
+  display: block;
+  min-height: 1.5em;
   background: transparent;
   border: none; /* 主题 code,tt 规则会给块内 code 画行内框，重置掉 */
   border-radius: 0;
@@ -708,6 +710,7 @@ div.ProseMirror pre.code-block code {
   right: 8px;
   bottom: 4px;
   font-size: 12px;
+  line-height: 1.2;
   color: #999;
   pointer-events: auto;
   cursor: pointer; /* 点击改语言 */

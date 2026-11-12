@@ -23,6 +23,9 @@ it("keeps source mode read-only across reloads and restores keyboard editing on 
   try {
     await render(true);
     const view = EditorView.findFromDOM(host.querySelector(".cm-editor")!)!;
+    expect(view.contentDOM.getAttribute("autocapitalize")).toBe("off");
+    expect(view.contentDOM.getAttribute("autocorrect")).toBe("off");
+    expect(view.contentDOM.getAttribute("spellcheck")).toBe("false");
     const backspace = () => {
       view.dispatch({ selection: { anchor: view.state.doc.length } });
       view.contentDOM.dispatchEvent(new KeyboardEvent("keydown", {
