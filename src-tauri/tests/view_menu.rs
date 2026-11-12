@@ -15,7 +15,12 @@ fn main() {
             let view = view_item.as_submenu().unwrap();
             let theme_item = view.get("theme").unwrap();
             let theme = theme_item.as_submenu().unwrap();
-            let ids = ["toggle-sidebar", "search", "source-mode", "focus-mode",
+            assert!(view.get("toggle-sidebar").is_none());
+            assert!(view.get("search").is_none());
+            for (id, label) in [("sidebar:files", "文件"), ("sidebar:outline", "大纲"), ("sidebar:search", "搜索")] {
+                assert_eq!(view.get(id).unwrap().as_check_menuitem().unwrap().text()?, label);
+            }
+            let ids = ["sidebar:files", "sidebar:outline", "sidebar:search", "source-mode", "focus-mode",
                 "typewriter-mode", "theme:github", "theme:night"];
 
             for enabled in [false, true, false] {

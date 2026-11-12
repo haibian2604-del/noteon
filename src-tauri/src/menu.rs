@@ -141,16 +141,17 @@ pub fn build<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     let view_menu = Submenu::with_id(app, "view", "视图", true)?;
     let mut checks = Vec::new();
     for (id, label, accel) in [
-        ("toggle-sidebar", "切换侧栏", "CmdOrCtrl+Shift+L"),
-        ("search", "搜索", "CmdOrCtrl+Shift+F"),
-        ("source-mode", "源码模式", "CmdOrCtrl+/"),
-        ("focus-mode", "专注模式", "F8"),
-        ("typewriter-mode", "打字机模式", "F9"),
+        ("sidebar:files", "文件", Some("CmdOrCtrl+Shift+L")),
+        ("sidebar:outline", "大纲", None),
+        ("sidebar:search", "搜索", Some("CmdOrCtrl+Shift+F")),
+        ("source-mode", "源码模式", Some("CmdOrCtrl+/")),
+        ("focus-mode", "专注模式", Some("F8")),
+        ("typewriter-mode", "打字机模式", Some("F9")),
     ] {
-        if id == "focus-mode" {
+        if id == "source-mode" || id == "focus-mode" {
             view_menu.append(&PredefinedMenuItem::separator(app)?)?;
         }
-        let check = CheckMenuItem::with_id(app, id, label, true, false, Some(accel))?;
+        let check = CheckMenuItem::with_id(app, id, label, true, false, accel)?;
         view_menu.append(&check)?;
         checks.push(check);
     }

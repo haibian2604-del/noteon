@@ -93,7 +93,6 @@ function App() {
   const editorRef = useRef<Editor | null>(null);
   const outlineElsRef = useRef<Element[]>([]);
   const outlineTimer = useRef<number | undefined>(undefined);
-  const lastPanelRef = useRef<SidebarTab>("files");
   const sourceModeRef = useRef(false);
   const sourceHandleRef = useRef<SourceEditorHandle | null>(null);
   const contentRef = useRef<HTMLElement | null>(null);
@@ -108,8 +107,9 @@ function App() {
 
   useEffect(() => {
     void setViewMenuChecked({
-      "toggle-sidebar": sidebar !== null,
-      search: sidebar === "search",
+      "sidebar:files": sidebar === "files",
+      "sidebar:outline": sidebar === "outline",
+      "sidebar:search": sidebar === "search",
       "source-mode": sourceMode,
       "focus-mode": focusMode,
       "typewriter-mode": typewriterMode,
@@ -133,14 +133,6 @@ function App() {
       FONT_FAMILY_CSS[settings.fontFamily],
     );
   }, [settings]);
-
-  useEffect(() => {
-    if (sidebar) lastPanelRef.current = sidebar;
-  }, [sidebar]);
-
-  const toggleSidebar = useCallback(() => {
-    setSidebar((s) => (s ? null : lastPanelRef.current));
-  }, []);
 
   // 源码模式 ↔ 所见即所得：content 状态是两侧共用的文档真相
   const toggleSourceMode = useCallback(() => {
@@ -427,8 +419,10 @@ function App() {
         case "quick-open":
           openQuickOpen();
           break;
-        case "search":
-          setSidebar((s) => (s === "search" ? null : "search"));
+        case "sidebar":
+          if (arg === "files" || arg === "outline" || arg === "search") {
+            setSidebar((s) => (s === arg ? null : arg));
+          }
           break;
         case "export:pdf":
           handleExport("pdf");
@@ -444,9 +438,6 @@ function App() {
           break;
         case "save-as":
           void doSave(true);
-          break;
-        case "toggle-sidebar":
-          toggleSidebar();
           break;
         case "source-mode":
           toggleSourceMode();
@@ -477,7 +468,7 @@ function App() {
     return () => {
       void unlisten.then((off) => off());
     };
-  }, [newDoc, doSave, openPath, pickFolder, runEditorCommand, openQuickOpen, handleExport, toggleSidebar, toggleSourceMode]);
+  }, [newDoc, doSave, openPath, pickFolder, runEditorCommand, openQuickOpen, handleExport, toggleSourceMode]);
 
   // macOS「打开方式」/ Finder 双击打开 md
   useEffect(() => {
