@@ -219,13 +219,13 @@ function App() {
   const openPath = useCallback(
     async (path: string) => {
       try {
-        // 打开文件时自动采纳其所在目录为工作区
-        if (!workspace) {
-          const dir = path.split("/").slice(0, -1).join("/");
+        const raw = await readTextFile(path);
+        // 工作区内打开子目录文件时保留根目录，外部文件则切换到其所在目录。
+        if (!workspace || !path.startsWith(`${workspace.replace(/\/+$/, "")}/`)) {
+          const dir = path.slice(0, path.lastIndexOf("/")) || "/";
           setWorkspace(dir);
           localStorage.setItem("noteon.workspace", dir);
         }
-        const raw = await readTextFile(path);
         // frontmatter 转成无语言代码块渲染（Milkdown 不解析 --- 头），保存时转回
         const enc = encodeFrontmatter(raw);
         frontmatterRef.current = enc.had;
@@ -622,6 +622,7 @@ function App() {
               </button>
             </div>
             <Sidebar
+              key={workspace}
               tab={sidebar}
               workspace={workspace}
               activePath={doc.path}
