@@ -14,6 +14,7 @@ import SourceEditor, { type SourceEditorHandle } from "./editor/SourceEditor";
 import { decodeFrontmatter, encodeFrontmatter } from "./editor/frontmatter";
 import { setMermaidTheme } from "./editor/mermaidView";
 import Sidebar, { type OutlineItem, type SidebarTab } from "./ui/Sidebar";
+import ResizableSidebar from "./ui/ResizableSidebar";
 import FormatToolbar from "./ui/FormatToolbar";
 import EditorContextMenu from "./ui/EditorContextMenu";
 import FindReplace from "./ui/FindReplace";
@@ -600,7 +601,7 @@ function App() {
       </header>
       <div className="body">
         {sidebar && (
-          <aside className="sidebar">
+          <ResizableSidebar>
             <Sidebar
               key={workspace}
               tab={sidebar}
@@ -615,7 +616,7 @@ function App() {
               onRenamed={handleRenamed}
               onDeleted={handleDeleted}
             />
-          </aside>
+          </ResizableSidebar>
         )}
         <QuickOpen
           open={quickOpen}

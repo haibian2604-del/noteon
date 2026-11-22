@@ -59,7 +59,7 @@ body {
 
 /* ── 侧栏（文件 / 大纲）── */
 .sidebar {
-  width: 260px;
+  position: relative;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -68,6 +68,21 @@ body {
   background: var(--side-bar-bg-color, var(--bg-color, #fafafa));
   -webkit-user-select: none;
   user-select: none;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -3px;
+  width: 6px;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer:focus-visible {
+  background: var(--primary-color, #0366d6);
 }
 
 .sidebar-content {
