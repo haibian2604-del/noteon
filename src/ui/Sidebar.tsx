@@ -130,7 +130,7 @@ function FileTreeRow({
         className={`tree-row${entry.path === activePath ? " active" : ""}${
           entry.path === cursorPath ? " cursor" : ""
         }`}
-        style={{ paddingLeft: 6 + depth * 14 }}
+        style={{ paddingLeft: 8 + depth * 18 }}
         data-path={entry.path}
         data-kind={entry.is_dir ? "dir" : "file"}
         onClick={() => void toggle()}
@@ -138,10 +138,31 @@ function FileTreeRow({
         title={entry.path}
       >
         {entry.is_dir ? (
-          <span className={`tree-caret${expanded ? " open" : ""}`}>▶</span>
+          <span className={`tree-caret${expanded ? " open" : ""}`} aria-hidden="true">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="m3.5 2 3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         ) : (
-          <span className="tree-caret" />
+          <span className="tree-caret" aria-hidden="true" />
         )}
+        <svg
+          className={`tree-icon ${entry.is_dir ? "folder-icon" : "document-icon"}`}
+          width="18" height="18" viewBox="0 0 20 20" fill="none"
+          stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          {entry.is_dir ? (
+            <path d={expanded
+              ? "M2.5 7V4.5h5l2 2h7v2M2.5 8.5h15l-2 7h-12z"
+              : "M2.5 5h5l2 2h8v9h-15z"} />
+          ) : (
+            <>
+              <path d="M5 2.5h6.5L15 6v11.5H5zM11 2.5v4h4" />
+              <path d="M7.5 10h5M7.5 13h4" />
+            </>
+          )}
+        </svg>
         {isRenaming ? (
           <input
             ref={inputRef}
