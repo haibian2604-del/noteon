@@ -68,3 +68,43 @@ it("replaces an old workspace when opening an external file, preserves subfolder
     vi.unstubAllGlobals();
   }
 });
+
+it("shows only the sidebar panel selected in the View menu and synchronizes its checkmark", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  localStorage.setItem("noteon.workspace", "/notes");
+  native.invoke.mockImplementation(async (command) => command === "list_dir" ? [] : null);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const select = async (panel: string) => {
+    await act(async () => native.handlers.get("noteon://menu")!({ payload: `sidebar:${panel}` }));
+  };
+  try {
+    await act(async () => root.render(<App />));
+    for (const [panel, label] of [["files", "文件"], ["outline", "大纲"], ["search", "搜索"]]) {
+      await select(panel);
+      expect(host.querySelector(".sidebar-heading")?.textContent).toBe(label);
+      expect(host.querySelectorAll(".sidebar-tab")).toHaveLength(0);
+      expect(Boolean(host.querySelector(".tree-filter"))).toBe(panel === "files");
+      expect(Boolean(host.querySelector(".sidebar-search"))).toBe(panel === "search");
+      const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");
+      expect(calls[calls.length - 1]?.[1].checked).toMatchObject({
+        "sidebar:files": panel === "files",
+        "sidebar:outline": panel === "outline",
+        "sidebar:search": panel === "search",
+      });
+    }
+    await select("search");
+    expect(host.querySelector(".sidebar")).toBeNull();
+    const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");
+    expect(calls[calls.length - 1]?.[1].checked).toMatchObject({
+      "sidebar:files": false, "sidebar:outline": false, "sidebar:search": false,
+    });
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+    localStorage.clear();
+    native.handlers.clear();
+    vi.unstubAllGlobals();
+  }
+});

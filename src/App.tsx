@@ -601,25 +601,8 @@ function App() {
       <div className="body">
         {sidebar && (
           <aside className="sidebar">
-            <div className="sidebar-tabs">
-              <button
-                className={`sidebar-tab${sidebar === "files" ? " active" : ""}`}
-                onClick={() => setSidebar("files")}
-              >
-                文件
-              </button>
-              <button
-                className={`sidebar-tab${sidebar === "outline" ? " active" : ""}`}
-                onClick={() => setSidebar("outline")}
-              >
-                大纲
-              </button>
-              <button
-                className={`sidebar-tab${sidebar === "search" ? " active" : ""}`}
-                onClick={() => setSidebar("search")}
-              >
-                搜索
-              </button>
+            <div className="sidebar-heading">
+              {{ files: "文件", outline: "大纲", search: "搜索" }[sidebar]}
             </div>
             <Sidebar
               key={workspace}

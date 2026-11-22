@@ -70,24 +70,11 @@ body {
   user-select: none;
 }
 
-.sidebar-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 8px 10px 4px;
-}
-
-.sidebar-tab {
-  border: none;
-  background: transparent;
-  color: var(--control-text-color, #777);
-  padding: 3px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.sidebar-tab.active {
-  background: var(--active-file-bg-color, rgba(0, 0, 0, 0.08));
+.sidebar-heading {
+  padding: 12px 20px 8px;
   color: var(--text-color, inherit);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .sidebar-content {
