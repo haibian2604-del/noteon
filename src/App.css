@@ -80,10 +80,6 @@ body {
   cursor: col-resize;
   touch-action: none;
 }
-.sidebar-resizer:hover,
-.sidebar-resizer:focus-visible {
-  background: var(--primary-color, #0366d6);
-}
 
 .sidebar-content {
   flex: 1;
