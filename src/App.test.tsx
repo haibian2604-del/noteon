@@ -88,6 +88,13 @@ it("shows only the sidebar panel selected in the View menu and synchronizes its 
       expect(host.querySelectorAll(".sidebar-tab")).toHaveLength(0);
       expect(Boolean(host.querySelector(".tree-filter"))).toBe(panel === "files");
       expect(Boolean(host.querySelector(".sidebar-search"))).toBe(panel === "search");
+      if (panel === "files") {
+        await act(async () => host.querySelector<HTMLButtonElement>(".file-filter-trigger")!.click());
+        const options = host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+        await act(async () => options[2].click());
+        expect(host.querySelector(".tree-filter-input")).not.toBeNull();
+        expect(JSON.parse(localStorage.getItem("noteon.fileFilter")!).mode).toBe("glob");
+      }
       const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");
       expect(calls[calls.length - 1]?.[1].checked).toMatchObject({
         "sidebar:files": panel === "files",

@@ -1,3 +1,4 @@
+import FileFilterMenu from "./FileFilterMenu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createPath,
@@ -485,19 +486,10 @@ export default function Sidebar({
     <>
       {tab === "files" && workspace && (
         <div className="tree-filter">
-          <select
+          <FileFilterMenu
             value={filter.mode}
-            onChange={(e) =>
-              setFilter((f) => ({
-                ...f,
-                mode: e.target.value as FileFilter["mode"],
-              }))
-            }
-          >
-            <option value="default">隐藏点开头</option>
-            <option value="all">全部</option>
-            <option value="glob">匹配模式</option>
-          </select>
+            onChange={(mode) => setFilter((current) => ({ ...current, mode }))}
+          />
           {filter.mode === "glob" && (
             <input
               className="tree-filter-input"
