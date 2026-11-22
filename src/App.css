@@ -139,8 +139,7 @@ body {
 }
 .tree-icon { flex: none; }
 .folder-icon { color: #a88850; }
-.document-icon { color: var(--control-text-color, #888); opacity: 0.75; }
-.tree-row.active .document-icon { color: inherit; opacity: 1; }
+.document-icon { color: #38a3ea; }
 @media (prefers-reduced-motion: reduce) {
   .tree-caret { transition: none; }
 }

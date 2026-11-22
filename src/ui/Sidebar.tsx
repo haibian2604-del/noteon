@@ -157,10 +157,10 @@ function FileTreeRow({
               ? "M2.5 7V4.5h5l2 2h7v2M2.5 8.5h15l-2 7h-12z"
               : "M2.5 5h5l2 2h8v9h-15z"} />
           ) : (
-            <>
-              <path d="M5 2.5h6.5L15 6v11.5H5zM11 2.5v4h4" />
-              <path d="M7.5 10h5M7.5 13h4" />
-            </>
+            <path
+              d="M1 15V5h3l3 4 3-4h3v10h-3V9l-3 4-3-4v6zM15 5h3v5h2l-3.5 5-3.5-5h2z"
+              fill="currentColor" stroke="none"
+            />
           )}
         </svg>
         {isRenaming ? (
