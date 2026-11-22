@@ -70,13 +70,6 @@ body {
   user-select: none;
 }
 
-.sidebar-heading {
-  padding: 12px 20px 8px;
-  color: var(--text-color, inherit);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .sidebar-content {
   flex: 1;
   overflow: auto;

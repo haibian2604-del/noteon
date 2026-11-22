@@ -81,9 +81,10 @@ it("shows only the sidebar panel selected in the View menu and synchronizes its 
   };
   try {
     await act(async () => root.render(<App />));
-    for (const [panel, label] of [["files", "文件"], ["outline", "大纲"], ["search", "搜索"]]) {
+    for (const panel of ["files", "outline", "search"]) {
       await select(panel);
-      expect(host.querySelector(".sidebar-heading")?.textContent).toBe(label);
+      expect(host.querySelector(".sidebar")).not.toBeNull();
+      expect(host.querySelector(".sidebar-heading")).toBeNull();
       expect(host.querySelectorAll(".sidebar-tab")).toHaveLength(0);
       expect(Boolean(host.querySelector(".tree-filter"))).toBe(panel === "files");
       expect(Boolean(host.querySelector(".sidebar-search"))).toBe(panel === "search");

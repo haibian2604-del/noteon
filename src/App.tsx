@@ -601,9 +601,6 @@ function App() {
       <div className="body">
         {sidebar && (
           <aside className="sidebar">
-            <div className="sidebar-heading">
-              {{ files: "文件", outline: "大纲", search: "搜索" }[sidebar]}
-            </div>
             <Sidebar
               key={workspace}
               tab={sidebar}
