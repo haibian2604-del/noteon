@@ -139,7 +139,6 @@ body {
 }
 .tree-icon { flex: none; }
 .folder-icon { color: #a88850; }
-.document-icon { color: #38a3ea; }
 @media (prefers-reduced-motion: reduce) {
   .tree-caret { transition: none; }
 }
