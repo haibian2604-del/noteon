@@ -192,6 +192,10 @@ body {
   margin: 0 auto;
 }
 
+.ProseMirror a[href] {
+  cursor: pointer;
+}
+
 /* Milkdown 单元格包含段落，去掉首尾正文间距以免撑高行。 */
 div.ProseMirror table {
   display: block;
