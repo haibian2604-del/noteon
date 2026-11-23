@@ -67,16 +67,19 @@ function App() {
   const [editorKey, setEditorKey] = useState(0);
   const [stats, setStats] = useState<Stats>({ words: 0, chars: 0 });
   const [showStats, setShowStats] = useState(false);
-  const [sidebar, setSidebar] = useState<SidebarTab | null>(null);
+  const [sidebar, setSidebar] = useState<SidebarTab | null>(() => {
+    const saved = localStorage.getItem("noteon.sidebar");
+    return saved === "files" || saved === "outline" || saved === "search" ? saved : null;
+  });
   const [workspace, setWorkspace] = useState<string | null>(() =>
     localStorage.getItem("noteon.workspace"),
   );
   const [theme, setTheme] = useState<ThemeName>(
     () => (localStorage.getItem("noteon.theme") as ThemeName) ?? "github",
   );
-  const [focusMode, setFocusMode] = useState(false);
-  const [typewriterMode, setTypewriterMode] = useState(false);
-  const [sourceMode, setSourceMode] = useState(false);
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem("noteon.focusMode") === "true");
+  const [typewriterMode, setTypewriterMode] = useState(() => localStorage.getItem("noteon.typewriterMode") === "true");
+  const [sourceMode, setSourceMode] = useState(() => localStorage.getItem("noteon.sourceMode") === "true");
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -94,7 +97,8 @@ function App() {
   const editorRef = useRef<Editor | null>(null);
   const outlineElsRef = useRef<Element[]>([]);
   const outlineTimer = useRef<number | undefined>(undefined);
-  const sourceModeRef = useRef(false);
+  const sourceModeRef = useRef(sourceMode);
+  const pendingAnchorRef = useRef<string | null>(null);
   const sourceHandleRef = useRef<SourceEditorHandle | null>(null);
   const contentRef = useRef<HTMLElement | null>(null);
 
@@ -107,6 +111,10 @@ function App() {
   }, [sourceMode]);
 
   useEffect(() => {
+    localStorage.setItem("noteon.sidebar", sidebar ?? "");
+    localStorage.setItem("noteon.sourceMode", String(sourceMode));
+    localStorage.setItem("noteon.focusMode", String(focusMode));
+    localStorage.setItem("noteon.typewriterMode", String(typewriterMode));
     void setViewMenuChecked({
       "sidebar:files": sidebar === "files",
       "sidebar:outline": sidebar === "outline",
@@ -218,7 +226,7 @@ function App() {
   }, []);
 
   const openPath = useCallback(
-    async (path: string) => {
+    async (path: string, anchor?: string) => {
       try {
         const raw = await readTextFile(path);
         // 工作区内打开子目录文件时保留根目录，外部文件则切换到其所在目录。
@@ -230,7 +238,7 @@ function App() {
         // frontmatter 转成无语言代码块渲染（Milkdown 不解析 --- 头），保存时转回
         const enc = encodeFrontmatter(raw);
         frontmatterRef.current = enc.had;
-        const md = enc.text;
+        let md = sourceModeRef.current ? raw : enc.text;
         // 大文件走源码模式（PLAN §4：>512KB 提示，不做所见即所得虚拟化）
         if (md.length > 512 * 1024 && !sourceModeRef.current) {
           if (
@@ -240,8 +248,10 @@ function App() {
           ) {
             editorRef.current = null;
             setSourceMode(true);
+            md = raw;
           }
         }
+        pendingAnchorRef.current = anchor ?? null;
         markdownRef.current = md;
         setContent(md);
         setOutline([]);
@@ -260,6 +270,42 @@ function App() {
     },
     [markSaved, workspace],
   );
+
+  const scrollToAnchor = (anchor: string) => {
+    const headings = contentRef.current?.querySelectorAll<HTMLElement>(".ProseMirror [id]");
+    Array.from(headings ?? []).find((el) => el.id === anchor)?.scrollIntoView({ block: "start" });
+  };
+
+  const handleDocumentLink = (event: React.MouseEvent<HTMLElement>) => {
+    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(".ProseMirror a[href]") : null;
+    const href = link?.getAttribute("href");
+    if (!href || href.startsWith("//")) return;
+    if (/^[a-z][a-z\d+.-]*:/i.test(href) && !href.startsWith("file:")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      if (href.startsWith("#")) {
+        scrollToAnchor(decodeURIComponent(href.slice(1)));
+        return;
+      }
+      if (!doc.path) {
+        window.alert("请先保存当前文档，再打开相对文档链接");
+        return;
+      }
+      const base = new URL("file:///");
+      base.pathname = doc.path;
+      const target = new URL(href, base);
+      const path = decodeURIComponent(target.pathname);
+      if (!/\.(md|markdown)$/i.test(path)) {
+        window.alert("目前仅支持在应用内打开 Markdown 文档链接");
+        return;
+      }
+      if (dirty && !window.confirm("当前文档有未保存的修改，继续跳转将丢弃这些修改。继续？")) return;
+      void openPath(path, decodeURIComponent(target.hash.slice(1)));
+    } catch (err) {
+      window.alert(`无法打开链接：${err}`);
+    }
+  };
 
   const doSave = useCallback(
     async (saveAs: boolean) => {
@@ -629,6 +675,7 @@ function App() {
         />
         <main
           ref={contentRef}
+          onClickCapture={handleDocumentLink}
           className="editor-scroll"
         >
           {sourceMode ? (
@@ -662,6 +709,10 @@ function App() {
                 }
                 setStats(computeStats(baseline));
                 refreshOutline();
+                if (pendingAnchorRef.current) {
+                  scrollToAnchor(pendingAnchorRef.current);
+                  pendingAnchorRef.current = null;
+                }
                 // 全文搜索命中跳转：滚动到包含命中行的块
                 const jump = pendingJumpRef.current;
                 if (jump) {

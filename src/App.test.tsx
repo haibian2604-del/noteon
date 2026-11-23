@@ -6,6 +6,7 @@ import App from "./App";
 const native = vi.hoisted(() => ({
   handlers: new Map<string, (event: { payload: string }) => void>(),
   invoke: vi.fn(),
+  changeDocument: (_markdown: string) => {},
 }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: native.invoke }));
 vi.mock("@tauri-apps/api/event", () => ({
@@ -20,7 +21,10 @@ vi.mock("@tauri-apps/api/window", () => ({
 vi.mock("@tauri-apps/api/webview", () => ({
   getCurrentWebview: () => ({ onDragDropEvent: async () => () => {} }),
 }));
-vi.mock("./editor/MilkdownEditor", () => ({ default: () => null }));
+vi.mock("./editor/MilkdownEditor", () => ({ default: ({ defaultValue, readOnly, typewriterMode, onChange }: { defaultValue: string; readOnly: boolean; typewriterMode: boolean; onChange: (markdown: string) => void }) => {
+    native.changeDocument = onChange;
+    return <div className="ProseMirror" data-readonly={String(readOnly)} data-typewriter={String(typewriterMode)}>{defaultValue}<a href="../specs/产品%20需求.md">PRD</a><a href="#目标">Anchor</a><h2 id="目标">目标</h2></div>;
+  } }));
 
 it("replaces an old workspace when opening an external file, preserves subfolders and keeps it on read failure", async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -114,5 +118,95 @@ it("shows only the sidebar panel selected in the View menu and synchronizes its 
     localStorage.clear();
     native.handlers.clear();
     vi.unstubAllGlobals();
+  }
+});
+
+
+it("restores View selections and native checkmarks after remount", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  native.invoke.mockImplementation(async () => null);
+  const host = document.createElement("div");
+  document.body.append(host);
+  let root = createRoot(host);
+  try {
+    await act(async () => root.render(<App />));
+    for (const payload of ["sidebar:outline", "focus-mode", "typewriter-mode", "source-mode", "theme:night"]) {
+      await act(async () => native.handlers.get("noteon://menu")!({ payload }));
+    }
+    await act(async () => root.unmount());
+    root = createRoot(host);
+    await act(async () => root.render(<App />));
+    const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");
+    expect(calls[calls.length - 1]?.[1].checked).toMatchObject({
+      "sidebar:outline": true, "source-mode": true, "focus-mode": true,
+      "typewriter-mode": true, "theme:night": true,
+    });
+    await act(async () => native.handlers.get("noteon://menu")!({ payload: "source-mode" }));
+    expect(host.querySelector(".ProseMirror")?.getAttribute("data-readonly")).toBe("true");
+    expect(host.querySelector(".ProseMirror")?.getAttribute("data-typewriter")).toBe("true");
+  } finally {
+    await act(async () => root.unmount()); host.remove(); localStorage.clear();
+    native.handlers.clear(); vi.unstubAllGlobals();
+  }
+});
+
+it("opens relative document links using the current document directory", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  native.invoke.mockImplementation(async (command) => command === "read_text_file" ? "# linked" : null);
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<App />));
+    await act(async () => native.handlers.get("noteon://open-file")!({ payload: "/notes/docs/index.md" }));
+    native.invoke.mockClear();
+    await act(async () => host.querySelector<HTMLAnchorElement>(".ProseMirror a")!.click());
+    expect(native.invoke).toHaveBeenCalledWith("read_text_file", { path: "/notes/specs/产品 需求.md" });
+  } finally {
+    await act(async () => root.unmount()); host.remove(); localStorage.clear();
+    native.handlers.clear(); vi.unstubAllGlobals();
+  }
+});
+
+
+it("scrolls in-document anchors and preserves unsaved content when navigation is cancelled", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  native.invoke.mockImplementation(async (command) => command === "read_text_file" ? "# linked" : null);
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<App />));
+    const heading = host.querySelector<HTMLElement>("h2")!;
+    heading.scrollIntoView = vi.fn();
+    await act(async () => host.querySelector<HTMLAnchorElement>('a[href^="#"]')!.click());
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    await act(async () => native.handlers.get("noteon://open-file")!({ payload: "/notes/docs/index.md" }));
+    await act(async () => native.changeDocument("unsaved text"));
+    native.invoke.mockClear();
+    await act(async () => host.querySelector<HTMLAnchorElement>("a")!.click());
+    expect(confirm).toHaveBeenCalled();
+    expect(native.invoke.mock.calls.some(([command]) => command === "read_text_file")).toBe(false);
+    expect(host.textContent).toContain("unsaved text");
+  } finally {
+    await act(async () => root.unmount()); host.remove(); localStorage.clear();
+    native.handlers.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals();
+  }
+});
+
+it("loads raw frontmatter when restarting in source mode", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  localStorage.setItem("noteon.sourceMode", "true");
+  const markdown = "---\ntitle: Test\n---\n\n# note";
+  native.invoke.mockImplementation(async (command) => command === "read_text_file" ? markdown : null);
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(<App />));
+    await act(async () => native.handlers.get("noteon://open-file")!({ payload: "/notes/index.md" }));
+    expect(host.querySelector(".cm-content")?.textContent).toContain("---title: Test---");
+    expect(host.querySelector(".cm-content")?.textContent).not.toContain("```");
+  } finally {
+    await act(async () => root.unmount()); host.remove(); localStorage.clear();
+    native.handlers.clear(); vi.unstubAllGlobals();
   }
 });
