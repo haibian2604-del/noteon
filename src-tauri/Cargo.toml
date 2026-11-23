@@ -1,6 +1,6 @@
 [package]
 name = "noteon"
-version = "0.2.0"
+version = "0.2.2"
 description = "A Markdown editor inspired by Typora"
 authors = ["kk"]
 edition = "2024"
