@@ -20,6 +20,10 @@ it("renders distinct folder and document icons and preserves expanding and openi
       activePath="/notes/architecture/overview.md" outline={[]} filter={{ mode: "default", pattern: "" }} refreshKey={0}
       onOpenFile={open} onJump={() => {}} onOpenHit={() => {}}
       onMutate={() => {}} onRenamed={() => {}} onDeleted={() => {}} />));
+    const content = host.querySelector(".sidebar-content")!;
+    const footer = host.querySelector(".tree-footer")!;
+    expect(content.nextElementSibling).toBe(footer);
+    expect(footer.querySelector('[aria-label="刷新文件列表"]')).not.toBeNull();
     const folder = host.querySelector<HTMLElement>('[data-kind="dir"]')!;
     expect(folder.querySelector(".folder-icon")).not.toBeNull();
     const closedPath = folder.querySelector(".folder-icon path")?.getAttribute("d");

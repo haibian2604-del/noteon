@@ -982,12 +982,13 @@ div.ProseMirror .find-current {
   --border-color: #3a4250;
 }
 
-/* ── 文件树过滤条 ── */
-.tree-filter {
+/* ── 文件树底部操作栏 ── */
+.tree-footer {
   display: flex;
-  gap: 4px;
+  flex: none;
+  margin-top: auto;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-top: 1px solid var(--border-color, #e0e0e0);
 }
 .tree-refresh {
   flex: none;

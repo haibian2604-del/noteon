@@ -90,7 +90,7 @@ it("shows only the sidebar panel selected in the View menu and synchronizes its 
       expect(host.querySelector(".sidebar")).not.toBeNull();
       expect(host.querySelector(".sidebar-heading")).toBeNull();
       expect(host.querySelectorAll(".sidebar-tab")).toHaveLength(0);
-      expect(Boolean(host.querySelector(".tree-filter"))).toBe(panel === "files");
+      expect(Boolean(host.querySelector(".tree-footer"))).toBe(panel === "files");
       expect(Boolean(host.querySelector(".sidebar-search"))).toBe(panel === "search");
       expect(host.querySelector(".file-filter-menu")).toBeNull();
       const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");

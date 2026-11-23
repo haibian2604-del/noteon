@@ -503,8 +503,9 @@ export default function Sidebar({
 
   return (
     <>
+      {body}
       {tab === "files" && workspace && (
-        <div className="tree-filter">
+        <div className="tree-footer">
           <button
             type="button"
             className="file-filter-trigger tree-refresh"
@@ -518,7 +519,6 @@ export default function Sidebar({
           </button>
         </div>
       )}
-      {body}
       {ctxMenu && (
         <div
           className="ctx-menu"
