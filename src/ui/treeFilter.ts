@@ -7,6 +7,20 @@ export interface FileFilter {
 
 export const DEFAULT_FILE_FILTER: FileFilter = { mode: "default", pattern: "" };
 
+export function loadFileFilter(): FileFilter {
+  try {
+    const raw = localStorage.getItem("noteon.fileFilter");
+    if (!raw) return DEFAULT_FILE_FILTER;
+    const p = JSON.parse(raw) as Partial<FileFilter>;
+    if (p.mode === "default" || p.mode === "all" || p.mode === "glob") {
+      return { mode: p.mode, pattern: typeof p.pattern === "string" ? p.pattern : "" };
+    }
+  } catch {
+    // 损坏即回默认
+  }
+  return DEFAULT_FILE_FILTER;
+}
+
 /** 仅支持 * 与 ?；空、或方括号不配对 → null（调用方回退 default 行为） */
 export function globToRegExp(pattern: string): RegExp | null {
   if (pattern === "") return null;

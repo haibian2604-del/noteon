@@ -625,7 +625,8 @@ div.ProseMirror {
   margin: 8px 0;
   min-height: 26px;
 }
-.settings-row > label:first-child {
+.settings-row > label:first-child,
+.settings-label {
   width: 64px;
   flex: none;
   font-size: 13px;
@@ -992,15 +993,6 @@ div.ProseMirror .find-current {
   flex: none;
   margin-left: auto;
 }
-.tree-filter-input {
-  min-width: 0;
-  padding: 2px 6px;
-  border: 1px solid var(--border-color, #d0d7de);
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-}
 .file-filter-menu { position: relative; flex: none; }
 .file-filter-trigger {
   display: flex;
@@ -1047,9 +1039,6 @@ div.ProseMirror .find-current {
 .file-filter-options button:hover,
 .file-filter-options button:focus-visible { background: rgba(125, 125, 125, 0.14); outline: none; }
 .file-filter-options button > span { width: 14px; flex: none; }
-.tree-filter-input {
-  flex: 1;
-}
 
 /* ── 文件树键盘导航光标 ── */
 .tree-row.cursor {

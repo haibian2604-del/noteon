@@ -1,4 +1,6 @@
 import { useState } from "react";
+import FileFilterMenu from "./FileFilterMenu";
+import type { FileFilter } from "./treeFilter";
 
 export type ThemeName = "github" | "night";
 
@@ -33,6 +35,8 @@ export function loadSettings(): Settings {
 interface Props {
   open: boolean;
   settings: Settings;
+  fileFilter: FileFilter;
+  onFileFilter: (filter: FileFilter) => void;
   theme: ThemeName;
   onPatch: (patch: Partial<Settings>) => void;
   onTheme: (t: ThemeName) => void;
@@ -43,6 +47,8 @@ interface Props {
 export default function SettingsModal({
   open,
   settings,
+  fileFilter,
+  onFileFilter,
   theme,
   onPatch,
   onTheme,
@@ -107,6 +113,29 @@ export default function SettingsModal({
               <option value="mono">等宽</option>
             </select>
           </div>
+        </section>
+
+        <section>
+          <h3>文件列表</h3>
+          <div className="settings-row">
+            <span className="settings-label">文件筛选</span>
+            <FileFilterMenu
+              value={fileFilter.mode}
+              onChange={(mode) => onFileFilter({ ...fileFilter, mode })}
+            />
+          </div>
+          {fileFilter.mode === "glob" && (
+            <div className="settings-row">
+              <label htmlFor="file-filter-pattern">匹配规则</label>
+              <input
+                id="file-filter-pattern"
+                className="settings-input"
+                placeholder="如 *.md 或笔记*"
+                value={fileFilter.pattern}
+                onChange={(e) => onFileFilter({ ...fileFilter, pattern: e.target.value })}
+              />
+            </div>
+          )}
         </section>
 
         <section>

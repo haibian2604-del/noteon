@@ -92,13 +92,7 @@ it("shows only the sidebar panel selected in the View menu and synchronizes its 
       expect(host.querySelectorAll(".sidebar-tab")).toHaveLength(0);
       expect(Boolean(host.querySelector(".tree-filter"))).toBe(panel === "files");
       expect(Boolean(host.querySelector(".sidebar-search"))).toBe(panel === "search");
-      if (panel === "files") {
-        await act(async () => host.querySelector<HTMLButtonElement>(".file-filter-trigger")!.click());
-        const options = host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
-        await act(async () => options[2].click());
-        expect(host.querySelector(".tree-filter-input")).not.toBeNull();
-        expect(JSON.parse(localStorage.getItem("noteon.fileFilter")!).mode).toBe("glob");
-      }
+      expect(host.querySelector(".file-filter-menu")).toBeNull();
       const calls = native.invoke.mock.calls.filter(([command]) => command === "set_view_menu_checked");
       expect(calls[calls.length - 1]?.[1].checked).toMatchObject({
         "sidebar:files": panel === "files",
@@ -205,6 +199,59 @@ it("loads raw frontmatter when restarting in source mode", async () => {
     await act(async () => native.handlers.get("noteon://open-file")!({ payload: "/notes/index.md" }));
     expect(host.querySelector(".cm-content")?.textContent).toContain("---title: Test---");
     expect(host.querySelector(".cm-content")?.textContent).not.toContain("```");
+  } finally {
+    await act(async () => root.unmount()); host.remove(); localStorage.clear();
+    native.handlers.clear(); vi.unstubAllGlobals();
+  }
+});
+
+
+it("edits file filters in Settings, applies them immediately, and restores the saved pattern", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  localStorage.setItem("noteon.workspace", "/notes");
+  localStorage.setItem("noteon.sidebar", "files");
+  localStorage.setItem("noteon.fileFilter", JSON.stringify({ mode: "glob", pattern: "*.md" }));
+  native.invoke.mockImplementation(async (command) => command === "list_dir" ? [
+    { name: "note.md", path: "/notes/note.md", is_dir: false },
+    { name: "readme.txt", path: "/notes/readme.txt", is_dir: false },
+  ] : null);
+  const host = document.createElement("div"); document.body.append(host);
+  let root = createRoot(host);
+  const openSettings = async () => {
+    await act(async () => native.handlers.get("noteon://menu")!({ payload: "settings" }));
+  };
+  const selectFilter = async (index: number) => {
+    await act(async () => host.querySelector<HTMLButtonElement>('.settings-panel .file-filter-trigger')!.click());
+    await act(async () => host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')[index].click());
+  };
+  try {
+    await act(async () => root.render(<App />));
+    expect(host.querySelector(".sidebar .file-filter-menu")).toBeNull();
+    expect(host.querySelector('.sidebar [aria-label="刷新文件列表"]')).not.toBeNull();
+    expect(host.querySelector(".sidebar")?.textContent).not.toContain("readme.txt");
+    await openSettings();
+    expect(host.querySelector<HTMLInputElement>("#file-filter-pattern")?.value).toBe("*.md");
+    await selectFilter(1);
+    expect(host.querySelector(".sidebar")?.textContent).toContain("readme.txt");
+    expect(host.querySelector("#file-filter-pattern")).toBeNull();
+    await selectFilter(0);
+    expect(JSON.parse(localStorage.getItem("noteon.fileFilter")!).mode).toBe("default");
+    await selectFilter(2);
+    const input = host.querySelector<HTMLInputElement>("#file-filter-pattern")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "*.txt");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(host.querySelector(".sidebar")?.textContent).not.toContain("note.md");
+    expect(host.querySelector(".sidebar")?.textContent).toContain("readme.txt");
+    expect(JSON.parse(localStorage.getItem("noteon.fileFilter")!)).toEqual({ mode: "glob", pattern: "*.txt" });
+    await act(async () => root.unmount()); root = createRoot(host);
+    await act(async () => root.render(<App />));
+    await openSettings();
+    expect(host.querySelector<HTMLInputElement>("#file-filter-pattern")?.value).toBe("*.txt");
+    expect(host.querySelector(".sidebar")?.textContent).not.toContain("note.md");
+    await act(async () => host.querySelector<HTMLButtonElement>(".settings-footer button")!.click());
+    expect(host.querySelector(".settings-panel")).toBeNull();
   } finally {
     await act(async () => root.unmount()); host.remove(); localStorage.clear();
     native.handlers.clear(); vi.unstubAllGlobals();

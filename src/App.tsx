@@ -15,6 +15,7 @@ import { decodeFrontmatter, encodeFrontmatter } from "./editor/frontmatter";
 import { setMermaidTheme } from "./editor/mermaidView";
 import Sidebar, { type OutlineItem, type SidebarTab } from "./ui/Sidebar";
 import ResizableSidebar from "./ui/ResizableSidebar";
+import { loadFileFilter } from "./ui/treeFilter";
 import FormatToolbar from "./ui/FormatToolbar";
 import EditorContextMenu from "./ui/EditorContextMenu";
 import FindReplace from "./ui/FindReplace";
@@ -81,6 +82,7 @@ function App() {
   const [typewriterMode, setTypewriterMode] = useState(() => localStorage.getItem("noteon.typewriterMode") === "true");
   const [sourceMode, setSourceMode] = useState(() => localStorage.getItem("noteon.sourceMode") === "true");
   const [settings, setSettings] = useState<Settings>(loadSettings);
+  const [fileFilter, setFileFilter] = useState(loadFileFilter);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
@@ -128,6 +130,10 @@ function App() {
       console.error("视图菜单状态同步失败", err);
     });
   }, [sidebar, sourceMode, focusMode, typewriterMode, theme]);
+
+  useEffect(() => {
+    localStorage.setItem("noteon.fileFilter", JSON.stringify(fileFilter));
+  }, [fileFilter]);
 
   // 设置：持久化 + 应用字体变量（主题字号以 html 根字号为 rem 基准；CM 侧走变量）
   useEffect(() => {
@@ -655,6 +661,7 @@ function App() {
               activePath={doc.path}
               outline={outline}
               refreshKey={treeRefresh}
+              filter={fileFilter}
               onOpenFile={(p) => void openPath(p)}
               onJump={jumpToHeading}
               onOpenHit={handleOpenHit}
@@ -766,6 +773,8 @@ function App() {
       <SettingsModal
         open={settingsOpen}
         settings={settings}
+        fileFilter={fileFilter}
+        onFileFilter={setFileFilter}
         theme={theme}
         onPatch={(patch) => setSettings((s) => ({ ...s, ...patch }))}
         onTheme={setTheme}

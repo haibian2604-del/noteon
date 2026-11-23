@@ -1,4 +1,3 @@
-import FileFilterMenu from "./FileFilterMenu";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createPath,
@@ -10,23 +9,9 @@ import {
   type SearchHit,
 } from "../bridge/ipc";
 import {
-  DEFAULT_FILE_FILTER,
   filterEntries,
   type FileFilter,
 } from "./treeFilter";
-function loadFileFilter(): FileFilter {
-  try {
-    const raw = localStorage.getItem("noteon.fileFilter");
-    if (!raw) return DEFAULT_FILE_FILTER;
-    const p = JSON.parse(raw) as Partial<FileFilter>;
-    if (p.mode === "default" || p.mode === "all" || p.mode === "glob") {
-      return { mode: p.mode, pattern: typeof p.pattern === "string" ? p.pattern : "" };
-    }
-  } catch {
-    // 损坏即回默认
-  }
-  return DEFAULT_FILE_FILTER;
-}
 
 export interface OutlineItem {
   level: number;
@@ -46,6 +31,7 @@ interface SidebarProps {
   outline: OutlineItem[];
   /** 文件树变动后递增，驱动根目录和已展开目录重读 */
   refreshKey: number;
+  filter: FileFilter;
   onOpenFile: (path: string) => void;
   onJump: (index: number) => void;
   onOpenHit: (path: string, lineText: string) => void;
@@ -288,6 +274,7 @@ export default function Sidebar({
   activePath,
   outline,
   refreshKey,
+  filter,
   onOpenFile,
   onJump,
   onOpenHit,
@@ -301,12 +288,10 @@ export default function Sidebar({
   const [renaming, setRenaming] = useState<{ path: string; value: string } | null>(
     null,
   );
-  const [filter, setFilter] = useState<FileFilter>(loadFileFilter);
   const [cursorPath, setCursorPath] = useState<string | null>(null);
   const filesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    localStorage.setItem("noteon.fileFilter", JSON.stringify(filter));
     setCursorPath(null); // 行集变了，光标可能悬空
   }, [filter]);
 
@@ -520,20 +505,6 @@ export default function Sidebar({
     <>
       {tab === "files" && workspace && (
         <div className="tree-filter">
-          <FileFilterMenu
-            value={filter.mode}
-            onChange={(mode) => setFilter((current) => ({ ...current, mode }))}
-          />
-          {filter.mode === "glob" && (
-            <input
-              className="tree-filter-input"
-              placeholder="如 *.md 或笔记*"
-              value={filter.pattern}
-              onChange={(e) =>
-                setFilter((f) => ({ ...f, pattern: e.target.value }))
-              }
-            />
-          )}
           <button
             type="button"
             className="file-filter-trigger tree-refresh"

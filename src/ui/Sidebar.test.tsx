@@ -17,7 +17,7 @@ it("renders distinct folder and document icons and preserves expanding and openi
   const open = vi.fn();
   try {
     await act(async () => root.render(<Sidebar tab="files" workspace="/notes"
-      activePath="/notes/architecture/overview.md" outline={[]} refreshKey={0}
+      activePath="/notes/architecture/overview.md" outline={[]} filter={{ mode: "default", pattern: "" }} refreshKey={0}
       onOpenFile={open} onJump={() => {}} onOpenHit={() => {}}
       onMutate={() => {}} onRenamed={() => {}} onDeleted={() => {}} />));
     const folder = host.querySelector<HTMLElement>('[data-kind="dir"]')!;
@@ -63,7 +63,7 @@ it("refreshes external changes at the root and in expanded subfolders while pres
   function Harness() {
     const [refreshKey, setRefreshKey] = useState(0);
     return <Sidebar tab="files" workspace="/notes" activePath="/notes/folder/selected.md"
-      outline={[]} refreshKey={refreshKey} onOpenFile={() => {}} onJump={() => {}}
+      outline={[]} filter={{ mode: "default", pattern: "" }} refreshKey={refreshKey} onOpenFile={() => {}} onJump={() => {}}
       onOpenHit={() => {}} onMutate={() => setRefreshKey(v => v + 1)}
       onRenamed={() => {}} onDeleted={() => {}} />;
   }
