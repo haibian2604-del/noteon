@@ -44,7 +44,7 @@ interface SidebarProps {
   workspace: string | null;
   activePath: string | null;
   outline: OutlineItem[];
-  /** 文件树变动后递增，驱动根目录重读 */
+  /** 文件树变动后递增，驱动根目录和已展开目录重读 */
   refreshKey: number;
   onOpenFile: (path: string) => void;
   onJump: (index: number) => void;
@@ -72,6 +72,7 @@ function FileTreeRow({
   depth,
   activePath,
   cursorPath,
+  refreshKey,
   renaming,
   setRenaming,
   filter,
@@ -83,6 +84,7 @@ function FileTreeRow({
   depth: number;
   activePath: string | null;
   cursorPath: string | null;
+  refreshKey: number;
   renaming: { path: string; value: string } | null;
   setRenaming: (v: { path: string; value: string } | null) => void;
   filter: FileFilter;
@@ -92,27 +94,35 @@ function FileTreeRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState<Entry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (renaming?.path === entry.path) inputRef.current?.select();
   }, [renaming, entry.path]);
 
-  const toggle = useCallback(async () => {
+  useEffect(() => {
+    if (!entry.is_dir || !expanded) return;
+    let cancelled = false;
+    void listDir(entry.path).then((entries) => {
+      if (!cancelled) {
+        setChildren(entries);
+        setError(null);
+      }
+    }).catch((err) => {
+      if (!cancelled) setError(String(err));
+    });
+    return () => { cancelled = true; };
+  }, [entry.path, entry.is_dir, expanded, refreshKey]);
+
+  const toggle = useCallback(() => {
     if (renaming?.path === entry.path) return;
     if (!entry.is_dir) {
       onOpenFile(entry.path);
       return;
     }
-    if (!expanded && children === null) {
-      try {
-        setChildren(await listDir(entry.path));
-      } catch {
-        setChildren([]);
-      }
-    }
     setExpanded((v) => !v);
-  }, [entry, expanded, children, onOpenFile, renaming]);
+  }, [entry, onOpenFile, renaming]);
 
   const commitRename = useCallback(() => {
     if (!renaming) return;
@@ -182,6 +192,7 @@ function FileTreeRow({
           <span className="tree-name">{entry.name}</span>
         )}
       </div>
+      {expanded && error && <div role="alert">无法读取文件夹：{error}</div>}
       {entry.is_dir && expanded && filterEntries(children ?? [], filter).map((c) => (
         <FileTreeRow
           key={c.path}
@@ -189,6 +200,7 @@ function FileTreeRow({
           depth={depth + 1}
           activePath={activePath}
           cursorPath={cursorPath}
+          refreshKey={refreshKey}
           renaming={renaming}
           setRenaming={setRenaming}
           filter={filter}
@@ -488,6 +500,7 @@ export default function Sidebar({
             depth={0}
             activePath={activePath}
             cursorPath={cursorPath}
+            refreshKey={refreshKey}
             renaming={renaming}
             setRenaming={setRenaming}
             filter={filter}
@@ -521,6 +534,17 @@ export default function Sidebar({
               }
             />
           )}
+          <button
+            type="button"
+            className="file-filter-trigger tree-refresh"
+            aria-label="刷新文件列表"
+            title="刷新文件列表"
+            onClick={onMutate}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 7v5h-5M4 17v-5h5M6.1 6.1A8 8 0 0 1 20 12M4 12a8 8 0 0 0 13.9 5.9" />
+            </svg>
+          </button>
         </div>
       )}
       {body}

@@ -988,6 +988,10 @@ div.ProseMirror .find-current {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
 }
+.tree-refresh {
+  flex: none;
+  margin-left: auto;
+}
 .tree-filter-input {
   min-width: 0;
   padding: 2px 6px;
